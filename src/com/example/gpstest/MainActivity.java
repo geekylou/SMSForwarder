@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		mBluetoothService = new Intent(this,TCPPacketHandler.class);
+		mBluetoothService = new Intent(this,BluetoothInterfaceService.class);
 		mProtocolHandler  = new ProtocolHandler(this,0x104);
 		
 		txtSock = (TextView)findViewById(R.id.textView1);
@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
 	{	
 		if (receiver == null)
 		{
-			IntentFilter filter = new IntentFilter(BluetoothInterfaceService.ACTION_RESP);
+			IntentFilter filter = new IntentFilter(BluetoothInterfaceService.PACKET_RECEIVED);
 			filter.addCategory(Intent.CATEGORY_DEFAULT);
 			receiver = new ResponseReceiver();
 			registerReceiver(receiver, filter);
