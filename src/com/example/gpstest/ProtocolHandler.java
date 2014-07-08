@@ -6,22 +6,23 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import android.content.Context;
+import android.content.Intent;
+
 public class ProtocolHandler 
 {
-	private DataInputStream  in;
-	private DataOutputStream out;
+	private int              sourceAddress;
 	
 	static final int PACKET_ID_DBG               = 0x88;
 	static final int PACKET_ID_BUTTON_PRESS      = 0x90;
 	static final int PACKET_ID_SETLED_INTENSITY8 = 0x0C;
 	
-	ProtocolHandler(DataInputStream in, DataOutputStream out)
+	ProtocolHandler(Context ctx,int sourceAddress)
 	{
-		this.in  = in;
-		this.out = out;
+		this.sourceAddress  = sourceAddress;
 	}
 	
-	byte getCRC(byte[] instr,int j)
+	static byte getCRC(byte[] instr,int j)
 	{
 	   byte CRC=0;
 	   byte genPoly = 0x07;
@@ -62,7 +63,7 @@ public class ProtocolHandler
 		return outStr.toByteArray();
 	}
 	
-	byte[] CreateButtonPressPacket(int buttonID,int pageNo) throws IOException
+	static byte[] CreateButtonPressPacket(int buttonID,int pageNo) throws IOException
 	{
 		ByteArrayOutputStream outStr = new ByteArrayOutputStream(64);
 		
@@ -73,17 +74,29 @@ public class ProtocolHandler
 		return outStr.toByteArray();
 	}
 
-	byte []CreatePacket(short source,short destination,byte[] packetData) throws IOException
+	static byte []CreatePacket(int i,int j,byte[] packetData) throws IOException
 	{
 		ByteArrayOutputStream outStr = new ByteArrayOutputStream(64);
 		DataOutputStream      dataOut = new DataOutputStream(outStr);
-		dataOut.writeShort(destination);
-		dataOut.writeShort(source);
+		dataOut.writeShort(j);
+		dataOut.writeShort(i);
 		dataOut.writeByte(packetData.length);
-		
-		out.write(outStr.toByteArray());
-		out.writeByte(getCRC(outStr.toByteArray(),outStr.size()));
+		dataOut.write(packetData);
+		dataOut.writeByte(getCRC(outStr.toByteArray(),outStr.size()));
 		
 		return outStr.toByteArray();
+	}
+	
+    void sendButtonPress(Context ctx, int destination,int buttonID,int pageNo)
+	{
+		try {			
+			byte[] buf = CreatePacket(sourceAddress,destination,CreateButtonPressPacket(buttonID,pageNo));
+			
+			Intent broadcastIntent = new Intent();
+			broadcastIntent.setAction(TCPPacketHandler.SEND_PACKET);
+			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+			broadcastIntent.putExtra("packetData", buf);
+			ctx.sendBroadcast(broadcastIntent);
+		} catch(IOException e) {};
 	}
 }

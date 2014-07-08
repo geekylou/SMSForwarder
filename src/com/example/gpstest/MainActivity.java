@@ -18,6 +18,7 @@ public class MainActivity extends Activity {
 
 	Intent          mBluetoothService;
 	ResponseReceiver receiver;
+	ProtocolHandler  mProtocolHandler;
 	
 	TextView txtGPS;
 	TextView txtLOC;
@@ -28,7 +29,8 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-		mBluetoothService = new Intent(this,BluetoothInterfaceService.class);
+		mBluetoothService = new Intent(this,TCPPacketHandler.class);
+		mProtocolHandler  = new ProtocolHandler(this,0x104);
 		
 		txtSock = (TextView)findViewById(R.id.textView1);
 		txtGPS = (TextView)findViewById(R.id.textView2);
@@ -44,25 +46,24 @@ public class MainActivity extends Activity {
 		Button but1= (Button)findViewById(R.id.button1);
 		but1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	BluetoothInterfaceService.sendMessage(MainActivity.this, "1");
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,0,0);
             }
         });
 		Button but2= (Button)findViewById(R.id.button2);
 		but2.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	BluetoothInterfaceService.sendMessage(MainActivity.this, "2");
-            }
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,1,0);            }
         });
 		Button but3= (Button)findViewById(R.id.button3);
 		but3.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	BluetoothInterfaceService.sendMessage(MainActivity.this, "3");
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,2,0);
             }
         });
 		Button but4 = (Button)findViewById(R.id.button4);
 		but4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	BluetoothInterfaceService.sendMessage(MainActivity.this, "4");
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
             }
         });
 

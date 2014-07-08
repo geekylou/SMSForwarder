@@ -33,6 +33,7 @@
                     "android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
         </service>
+        <service android:name="TCPPacketHandler"></service>
     </application>
 
 </manifest>

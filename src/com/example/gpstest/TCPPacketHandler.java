@@ -7,26 +7,63 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import com.example.gpstest.BluetoothInterfaceService.IPSocketThread;
+import com.example.gpstest.BluetoothInterfaceService.ResponseReceiver;
 
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.provider.Telephony;
+import android.telephony.PhoneStateListener;
 import android.telephony.SmsMessage;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
 
-public class TCPPacketHandler 
+public class TCPPacketHandler extends Service
 {
 	IPSocketThread  mIPSocketThread = new IPSocketThread();
 	Context ctx;
-	public static final String ACTION_RESP = "uk.me.geekylou.GPSTest.PACKET_RECEIVED";
+	
+	public static final String SEND_PACKET     = "uk.me.geekylou.GPSTest.SEND_PACKET";
+	public static final String PACKET_RECEIVED = "uk.me.geekylou.GPSTest.PACKET_RECEIVED";
 	
 	public TCPPacketHandler(Context ctx,int port)
 	{
 		this.ctx = ctx;
 	}
+	
+	public TCPPacketHandler()
+	{
+		this.ctx = this;
+	}
+	
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("LocalService", "Received start id " + startId + ": " + intent);
+
+        Toast.makeText(this, "Service Started", Toast.LENGTH_SHORT).show();
+        
+        start();
+        
+    	// We want this service to continue running until it is explicitly
+        // stopped, so return sticky.
+        return START_STICKY;
+    }
+	
+    @SuppressWarnings("deprecation")
+	@Override
+    public void onDestroy() {
+        // Tell the user we stopped.
+        Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show();
+
+        stop();
+    }
+	
 	
 	class IPSocketThread extends Thread
 	{
@@ -42,7 +79,7 @@ public class TCPPacketHandler
 		{
 			byte buffer[] = new byte[256];
 			try {
-				mSocket = new Socket(InetAddress.getByName("192.168.0.75"),9100);
+				mSocket = new Socket(InetAddress.getByName("192.168.0.101"),9100);
 				
 				out = new DataOutputStream(mSocket.getOutputStream());
 				in  = new DataInputStream(mSocket.getInputStream());
@@ -82,8 +119,6 @@ public class TCPPacketHandler
 	}
 	class ResponseReceiver extends BroadcastReceiver 
 	{	
-		public static final String ACTION_RESP = "uk.me.geekylou.GPSTest.SEND_PACKET";
-
 		ResponseReceiver()
 		{
 			super();
@@ -104,7 +139,16 @@ public class TCPPacketHandler
 	}
 	void start()
 	{
-		mIPSocketThread.start();
+		IntentFilter filter = new IntentFilter(SEND_PACKET);
+		ResponseReceiver mReceiver = new ResponseReceiver();
+		filter.addCategory(Intent.CATEGORY_DEFAULT);
+		registerReceiver(mReceiver, filter);
+		
+		if(mIPSocketThread.running == false)
+		{
+			mIPSocketThread.running = true;
+			mIPSocketThread.start();
+		}
 	}
 	
 	void stop()
@@ -123,5 +167,11 @@ public class TCPPacketHandler
         	{
         		e.printStackTrace();
         	}
+	}
+
+	@Override
+	public IBinder onBind(Intent arg0) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
