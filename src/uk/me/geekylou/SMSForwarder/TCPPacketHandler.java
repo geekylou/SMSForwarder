@@ -1,4 +1,4 @@
-package com.example.gpstest;
+package uk.me.geekylou.SMSForwarder;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -7,7 +7,8 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import com.example.gpstest.BluetoothInterfaceService.ResponseReceiver;
+import uk.me.geekylou.SMSForwarder.BluetoothInterfaceService.ResponseReceiver;
+
 
 import android.app.Service;
 import android.content.BroadcastReceiver;

@@ -1,4 +1,6 @@
-package com.example.gpstest;
+package uk.me.geekylou.SMSForwarder;
+
+import com.example.gpstest.R;
 
 import android.location.Location;
 import android.location.LocationListener;

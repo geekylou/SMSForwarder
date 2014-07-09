@@ -1,4 +1,4 @@
-package com.example.gpstest;
+package uk.me.geekylou.SMSForwarder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -1,4 +1,4 @@
-package com.example.gpstest;
+package uk.me.geekylou.SMSForwarder;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.example.gpstest.R;
 
 import android.app.Activity;
 import android.app.AlertDialog;
