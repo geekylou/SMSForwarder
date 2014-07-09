@@ -122,11 +122,12 @@ public class BluetoothInterfaceService extends Service
 		BluetoothSocket       mSocket;
 		DataOutputStream out = null;
 		DataInputStream  in;
+		ProtocolHandler  handler = new ProtocolHandler(BluetoothInterfaceService.this,0x104); 
 		
 		boolean running = false, isOpen = false;
 		public void run()
 		{
-			byte buffer[] = new byte[512];
+			byte header[] = new byte[6];
 			try {
 				
 				if (mSocket == null)
@@ -141,29 +142,31 @@ public class BluetoothInterfaceService extends Service
 				}
 				out = new DataOutputStream(mSocket.getOutputStream());
 				in  = new DataInputStream(mSocket.getInputStream());
+				
 				synchronized(this) 
 				{
 				isOpen = true;
 				}
 				while(running)
 				{
-					int retval = in.read(buffer, 0, 5);
+					int retval = in.read(header, 0, 5);
 					
-					Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)buffer[4]);
+					Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)header[4]);
 					
-					if (retval >= 5 && buffer[4] > 0 && buffer[4] < 256)
+					if (retval >= 5 && header[4] > 0 && header[4] < 256)
 					{
-						retval = in.read(buffer, 5, buffer[4] + 1);
+						byte[] payload = new byte[header[4] + 1];
+						retval = in.read(payload, 0, header[4] + 1);
 						
 						Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
 						
-						
+						handler.decodePacket(header, payload);
 					}
 					// processing done here¦.
 					Intent broadcastIntent = new Intent();
 					broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
 					broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-					broadcastIntent.putExtra("SOCK", new String(buffer));
+					broadcastIntent.putExtra("SOCK", new String(header));
 					ctx.sendBroadcast(broadcastIntent);
 				}
 				in.close();
