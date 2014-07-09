@@ -91,7 +91,7 @@ public class TCPPacketHandler extends Service
 				{
 					if (in.read(buffer, 0, 6) > 0)
 					{
-						in.read(buffer, 6, buffer[5] + 1);
+						in.read(buffer, 6, buffer[4] + 1);
 					}
 					// processing done here¦.
 					//Intent broadcastIntent = new Intent();

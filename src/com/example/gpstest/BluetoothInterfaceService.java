@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 
@@ -35,6 +36,7 @@ public class BluetoothInterfaceService extends Service
 {
 	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e");
 	BluetoothAdapter mBluetoothAdapter;
+	BluetoothDevice mBluetoothDevice;
 	
 	IPSocketThread  mIPSocketThread = new IPSocketThread();
 	Context ctx;
@@ -56,9 +58,46 @@ public class BluetoothInterfaceService extends Service
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
 
-        Toast.makeText(this, "Service Started", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
         
-        start();
+        if (intent.getBooleanExtra("CONNECT", false))
+        {
+    		if(mIPSocketThread.running == false)
+    		{
+	        	mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+	    		if (mBluetoothAdapter == null) {
+	    		    // Device does not support Bluetooth
+	    		}
+	    		
+	    		if (!mBluetoothAdapter.isEnabled()) {
+	    			
+	    		}
+	    		
+	    		IntentFilter filter = new IntentFilter(SEND_PACKET);
+	    		ResponseReceiver mReceiver = new ResponseReceiver();
+	    		filter.addCategory(Intent.CATEGORY_DEFAULT);
+	    		registerReceiver(mReceiver, filter);
+
+	        	try 
+	        	{
+	        		mIPSocketThread.mSocket = mBluetoothAdapter.getRemoteDevice(intent.getStringExtra("BT_ID")).createRfcommSocketToServiceRecord(uuid);
+	        		mIPSocketThread.mSocket.connect();
+
+	        		Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
+	        		
+	        		
+	        		mIPSocketThread.running = true;
+	        		mIPSocketThread.start();
+				} 
+	        	catch (IOException e) 
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    		}				
+        }
+        else
+        	start();
         
     	// We want this service to continue running until it is explicitly
         // stopped, so return sticky.
@@ -87,12 +126,19 @@ public class BluetoothInterfaceService extends Service
 		boolean running = false, isOpen = false;
 		public void run()
 		{
-			byte buffer[] = new byte[256];
+			byte buffer[] = new byte[512];
 			try {
-				mBluetoothSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord(CONNECTIVITY_SERVICE, uuid);
-								
-				mSocket = mBluetoothSocket.accept();
 				
+				if (mSocket == null)
+				{
+					mBluetoothSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("protocol-v2", uuid);
+								
+					mSocket = mBluetoothSocket.accept();
+				}
+				else
+				{
+				//	mSocket.connect();
+				}
 				out = new DataOutputStream(mSocket.getOutputStream());
 				in  = new DataInputStream(mSocket.getInputStream());
 				synchronized(this) 
@@ -101,16 +147,24 @@ public class BluetoothInterfaceService extends Service
 				}
 				while(running)
 				{
-					if (in.read(buffer, 0, 6) > 0)
+					int retval = in.read(buffer, 0, 5);
+					
+					Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)buffer[4]);
+					
+					if (retval >= 5 && buffer[4] > 0 && buffer[4] < 256)
 					{
-						in.read(buffer, 6, buffer[5] + 1);
+						retval = in.read(buffer, 5, buffer[4] + 1);
+						
+						Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
+						
+						
 					}
 					// processing done here¦.
-					//Intent broadcastIntent = new Intent();
-					//broadcastIntent.setAction(ACTION_RESP);
-					//broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-					//broadcastIntent.putExtra("SOCK", resultTxt);
-					//ctx.sendBroadcast(broadcastIntent);
+					Intent broadcastIntent = new Intent();
+					broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
+					broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+					broadcastIntent.putExtra("SOCK", new String(buffer));
+					ctx.sendBroadcast(broadcastIntent);
 				}
 				in.close();
 				out.close();
@@ -167,6 +221,7 @@ public class BluetoothInterfaceService extends Service
 		
 		if(mIPSocketThread.running == false)
 		{
+			mIPSocketThread.mSocket = null;
 			mIPSocketThread.running = true;
 			mIPSocketThread.start();
 		}

@@ -8,14 +8,15 @@ import java.io.IOException;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 public class ProtocolHandler 
 {
 	private int              sourceAddress;
 	
-	static final int PACKET_ID_DBG               = 0x88;
-	static final int PACKET_ID_BUTTON_PRESS      = 0x90;
-	static final int PACKET_ID_SETLED_INTENSITY8 = 0x0C;
+	static final byte PACKET_ID_DBG               = (byte) 0x88;
+	static final byte PACKET_ID_BUTTON_PRESS      = (byte) 0x90;
+	static final byte PACKET_ID_SETLED_INTENSITY8 = (byte) 0x0C;
 	
 	ProtocolHandler(Context ctx,int sourceAddress)
 	{
@@ -99,4 +100,23 @@ public class ProtocolHandler
 			ctx.sendBroadcast(broadcastIntent);
 		} catch(IOException e) {};
 	}
+    
+    void decodePacket(byte header[],byte payload[])
+    {
+    	switch(payload[0])
+    	{
+    	case PACKET_ID_BUTTON_PRESS:
+    		handleButtonPress(payload[1],payload[2]);
+    		break;
+    	default:
+    		Log.i("ProtocolHandler", "unknown packet ID " + payload[0]);
+    		
+    	}
+    }
+    
+    /* Overide this to handle button press events.*/
+    void handleButtonPress(int buttonID,int pageNo)
+    {
+    	Log.i("ProtocolHandler", "unimplemented handleButtonPress(" + buttonID + "," + pageNo);
+    }
 }

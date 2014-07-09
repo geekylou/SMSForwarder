@@ -9,9 +9,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
@@ -23,6 +25,7 @@ public class MainActivity extends Activity {
 	TextView txtGPS;
 	TextView txtLOC;
 	TextView txtSock;
+	private SharedPreferences prefs;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +38,11 @@ public class MainActivity extends Activity {
 		txtSock = (TextView)findViewById(R.id.textView1);
 		txtGPS = (TextView)findViewById(R.id.textView2);
 		txtLOC = (TextView)findViewById(R.id.textView3);
+		
+        prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+
+		txtLOC.setText(prefs.getString("BT_ID", "")+":"+prefs.getString("BT_NAME",""));
+		
 		
 		Button butStart= (Button)findViewById(R.id.buttonStart);
 		butStart.setOnClickListener(new View.OnClickListener() {
@@ -90,6 +98,10 @@ public class MainActivity extends Activity {
 	{	
 		if (receiver == null)
 		{
+			CheckBox checkConnect = (CheckBox)findViewById(R.id.checkBoxConnect);
+			mBluetoothService.putExtra("CONNECT", checkConnect.isChecked());
+			mBluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));
+			
 			IntentFilter filter = new IntentFilter(BluetoothInterfaceService.PACKET_RECEIVED);
 			filter.addCategory(Intent.CATEGORY_DEFAULT);
 			receiver = new ResponseReceiver();

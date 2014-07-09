@@ -19,6 +19,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.Uri;
@@ -41,11 +42,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.view.LayoutInflater;
 
-public class BluetoothChooserActivity extends Activity {
+public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
 	private ListView mTimeLineView;
 	private ArrayAdapter<Entry> mBluetoothDeviceArrayAdapter;
 	static final int REQUEST_NEW_ENTRY = 1000;
-	BluetoothAdapter mBluetoothAdapter;
+	private BluetoothAdapter mBluetoothAdapter;
+	private SharedPreferences prefs;
 	
     /** Called when the activity is first created. */
     @Override
@@ -57,6 +59,8 @@ public class BluetoothChooserActivity extends Activity {
         final Intent intent = getIntent();
         String action = intent.getAction();
         
+        prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+        
         mBluetoothDeviceArrayAdapter = new ArrayAdapter<Entry>(this, R.layout.itemb);
         
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -65,7 +69,7 @@ public class BluetoothChooserActivity extends Activity {
 		}
 		
 		if (!mBluetoothAdapter.isEnabled()) {
-			
+			finish();
 		}
 		
         final Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
@@ -111,7 +115,13 @@ public class BluetoothChooserActivity extends Activity {
         mTimeLineView.setOnItemClickListener (new AdapterView.OnItemClickListener() {
 
         	  public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
-        		  
+        		
+    		    SharedPreferences.Editor mPreferencesEditor = prefs.edit();
+
+    		    mPreferencesEditor.putString("BT_ID"  , mBluetoothDeviceArrayAdapter.getItem(position).device.getAddress());
+    		    mPreferencesEditor.putString("BT_NAME", mBluetoothDeviceArrayAdapter.getItem(position).device.getName());
+        		mPreferencesEditor.commit();
+        		
       			intent.putExtra("DeviceID",mBluetoothDeviceArrayAdapter.getItem(position).device.getAddress());
 				setResult(RESULT_OK);
 				finish();

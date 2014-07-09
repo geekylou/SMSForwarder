@@ -74,26 +74,32 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/buttonStart"
         android:layout_alignLeft="@+id/buttonStart"
-        android:layout_marginBottom="21dp"
+        android:layout_marginBottom="54dp"
         android:text="1" />
-
-    <Button
-        android:id="@+id/buttonChooser"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/buttonStart"
-        android:layout_alignBottom="@+id/buttonStart"
-        android:layout_centerHorizontal="true"
-        android:text="Select Device" />
 
     <Button
         android:id="@+id/buttonStop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/buttonChooser"
-        android:layout_alignBottom="@+id/buttonChooser"
         android:layout_alignParentRight="true"
-        android:layout_marginRight="14dp"
+        android:layout_below="@+id/button1"
         android:text="Stop" />
+
+    <Button
+        android:id="@+id/buttonChooser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/buttonStop"
+        android:layout_alignBottom="@+id/buttonStop"
+        android:layout_centerHorizontal="true"
+        android:text="Select Device" />
+
+    <CheckBox
+        android:id="@+id/checkBoxConnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/buttonStart"
+        android:layout_alignLeft="@+id/buttonStart"
+        android:text="Connect to Other Bt Device" />
 
 </RelativeLayout>
