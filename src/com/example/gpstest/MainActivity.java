@@ -73,6 +73,17 @@ public class MainActivity extends Activity {
                 StopLocation();
             }
         });
+		
+		Button butChooser = (Button)findViewById(R.id.buttonChooser);
+		butChooser.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+            	Intent intent = new Intent(MainActivity.this, BluetoothChooserActivity.class);
+				intent.setAction(intent.ACTION_INSERT);
+        		intent.putExtra("Tags","note");
+				startActivityForResult(intent,0);
+				// TODO Auto-generated method stub
+            }
+        });	
 	}
 
 	void StartLocation()
