@@ -82,6 +82,8 @@ public class BluetoothChooserActivity extends Activity {
          }
      }
 
+// TODO: Do we want to remove OK/Cancel buttons for selecting Bluetooth device to connect to.
+/*        
         Button mPostEntryButton = (Button) findViewById(R.id.buttonSelect);
         mPostEntryButton.setOnClickListener(new OnClickListener()
         {
@@ -103,7 +105,7 @@ public class BluetoothChooserActivity extends Activity {
 			}
         	
         });
-
+*/
         mTimeLineView = (ListView) findViewById(R.id.listView1);
         mTimeLineView.setAdapter(mBluetoothDeviceArrayAdapter);
         mTimeLineView.setOnItemClickListener (new AdapterView.OnItemClickListener() {
@@ -115,76 +117,5 @@ public class BluetoothChooserActivity extends Activity {
 				finish();
         	  }
         	});
-   }
-    
-    protected void onActivityResult(int requestCode, int resultCode, Intent returnedIntent) { 
-	    super.onActivityResult(requestCode, resultCode, returnedIntent); 
-
-	    switch(requestCode) { 
-	      case REQUEST_NEW_ENTRY:
-	        //if(resultCode == RESULT_OK){  
-	        //	reload();   
-	        //}
-	    }
-    }
-    @Override
-    public boolean onContextItemSelected(MenuItem item) {
-        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
-        		
-        switch (item.getItemId()) {
-
-            default:
-                return super.onContextItemSelected(item);
-        }
-    }
-    
-    /**
-     * Called when your activity's options menu needs to be created.
-     */
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-
-        MenuInflater inflater = getMenuInflater();
-//        inflater.inflate(R.menu.options_menu, menu);
-        return true;
-    }
-    
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
-        switch (item.getItemId()) {
-/*        case R.id.itemEvent:
-  		  	Intent intent = new Intent(BluetoothChooserActivity.this, EditEventEntryActivity.class);
-			  
-  		  	intent.setAction(Intent.ACTION_INSERT);
-  		  	startActivityForResult(intent,REQUEST_NEW_ENTRY);
-  		  	return true;
-        case R.id.itemDumpDB:
-        	return true;*/
-        default:
-            return super.onOptionsItemSelected(item);
-        }
-    }
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v,
-                                    ContextMenuInfo menuInfo) {
-    }
-    
-    class DeleteEntryDialogClickListener implements DialogInterface.OnClickListener 
-    {
-    	Entry entry;
-    	
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            switch (which){
-            case DialogInterface.BUTTON_POSITIVE:
-                break;
-
-            case DialogInterface.BUTTON_NEGATIVE:
-                //No button clicked
-                break;
-            }
-        }
-    };
+   }    
 }
