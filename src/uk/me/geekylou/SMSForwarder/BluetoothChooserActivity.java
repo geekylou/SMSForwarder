@@ -11,7 +11,7 @@ import java.util.Set;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.example.gpstest.R;
+import uk.me.geekylou.SMSForwarder.R;
 
 import android.app.Activity;
 import android.app.AlertDialog;

@@ -6,13 +6,18 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import uk.me.geekylou.SMSForwarder.R;
+
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 public class ProtocolHandler 
 {
 	private int              sourceAddress;
+	Context                  ctx;
 	
 	static final byte PACKET_ID_DBG               = (byte) 0x88;
 	static final byte PACKET_ID_BUTTON_PRESS      = (byte) 0x90;
@@ -21,6 +26,7 @@ public class ProtocolHandler
 	ProtocolHandler(Context ctx,int sourceAddress)
 	{
 		this.sourceAddress  = sourceAddress;
+		this.ctx            = ctx;
 	}
 	
 	static byte getCRC(byte[] instr,int j)
@@ -118,5 +124,19 @@ public class ProtocolHandler
     void handleButtonPress(int buttonID,int pageNo)
     {
     	Log.i("ProtocolHandler", "unimplemented handleButtonPress(" + buttonID + "," + pageNo);
+    	
+    	NotificationCompat.Builder mBuilder =
+			    new NotificationCompat.Builder(ctx)
+			    .setSmallIcon(R.drawable.ic_launcher)
+			    .setContentTitle("My notification")
+			    .setContentText("Hello World!");
+		
+		// Sets an ID for the notification
+		int mNotificationId = 001;
+		// Gets an instance of the NotificationManager service
+		NotificationManager mNotifyMgr = 
+		        (NotificationManager) ctx.getSystemService(ctx.NOTIFICATION_SERVICE);
+		// Builds the notification and issues it.
+		mNotifyMgr.notify(mNotificationId, mBuilder.build());
     }
 }
