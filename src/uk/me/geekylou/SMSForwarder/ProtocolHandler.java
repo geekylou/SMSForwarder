@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import uk.me.geekylou.SMSForwarder.R;
 
@@ -20,6 +21,7 @@ public class ProtocolHandler
 	Context                  ctx;
 	
 	static final byte PACKET_ID_DBG               = (byte) 0x88;
+	static final byte PACKET_ID_SMS               = (byte) 0x8a;
 	static final byte PACKET_ID_BUTTON_PRESS      = (byte) 0x90;
 	static final byte PACKET_ID_SETLED_INTENSITY8 = (byte) 0x0C;
 	
@@ -81,17 +83,50 @@ public class ProtocolHandler
 		return outStr.toByteArray();
 	}
 
+	static byte[] CreateSMSPacket(String sender,String payload) throws IOException
+	{
+		ByteArrayOutputStream outStr = new ByteArrayOutputStream(payload.length()+sender.length()+64);
+		DataOutputStream      dataOut = new DataOutputStream(outStr);
+		
+		byte[] senderByteArr = Charset.forName("UTF-8").encode(sender).array();
+		byte[] payloadByteArr = Charset.forName("UTF-8").encode(payload).array();
+		
+		dataOut.write(PACKET_ID_SMS);
+		dataOut.write(senderByteArr.length);
+		dataOut.write(senderByteArr);
+		dataOut.writeShort(payloadByteArr.length);
+		dataOut.write(payloadByteArr);
+		
+		return outStr.toByteArray();
+	}
+	
 	static byte []CreatePacket(int i,int j,byte[] packetData) throws IOException
 	{
 		ByteArrayOutputStream outStr = new ByteArrayOutputStream(64);
 		DataOutputStream      dataOut = new DataOutputStream(outStr);
 		dataOut.writeShort(j);
 		dataOut.writeShort(i);
-		dataOut.writeByte(packetData.length);
+		dataOut.writeShort(packetData.length); // Extended protocol type (payload can be larger then 256byte.
 		dataOut.write(packetData);
 		dataOut.writeByte(getCRC(outStr.toByteArray(),outStr.size()));
 		
 		return outStr.toByteArray();
+	}
+	
+	void sendSMSMessage(Context ctx, int destination,String sender, String payload)
+	{
+		try {			
+			byte[] buf = CreatePacket(sourceAddress,destination,CreateSMSPacket(sender,payload));
+			
+			Intent broadcastIntent = new Intent();
+			broadcastIntent.setAction(TCPPacketHandler.SEND_PACKET);
+			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+			broadcastIntent.putExtra("packetData", buf);
+			ctx.sendBroadcast(broadcastIntent);
+			
+		} catch(IOException e) {    	
+			Log.e("ProtocolHandler", "Unexpected io exception "+e.toString());
+		};
 	}
 	
     void sendButtonPress(Context ctx, int destination,int buttonID,int pageNo)
@@ -104,23 +139,68 @@ public class ProtocolHandler
 			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 			broadcastIntent.putExtra("packetData", buf);
 			ctx.sendBroadcast(broadcastIntent);
-		} catch(IOException e) {};
+		} catch(IOException e) {    	
+			Log.e("ProtocolHandler", "Unexpected io exception "+e.toString());
+		};
 	}
     
     void decodePacket(byte header[],byte payload[])
     {
-    	switch(payload[0])
+    	try {
+		ByteArrayInputStream inStr = new ByteArrayInputStream(payload);
+		DataInputStream      in  = new DataInputStream(inStr);
+
+    	switch((byte)in.read())
     	{
     	case PACKET_ID_BUTTON_PRESS:
     		handleButtonPress(payload[1],payload[2]);
     		break;
+    	case PACKET_ID_SMS:
+    		int senderLength = in.read();
+    		byte[] senderBytes = new byte[senderLength];
+    		
+    		in.read(senderBytes);
+    		
+    		int messageLength = in.readShort();
+    		byte[] messageBytes = new byte[messageLength];
+    		
+    		in.read(messageBytes);
+    		
+    		handleSMSMessage(new String(senderBytes,"UTF-8"),new String(messageBytes,"UTF-8"));
+    		
+    		
     	default:
     		Log.i("ProtocolHandler", "unknown packet ID " + payload[0]);
     		
-    	}
+    	}    	
+			in.close();
+	    	inStr.close();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
-    /* Overide this to handle button press events.*/
+    void handleSMSMessage(String string, String string2) {
+
+    	NotificationCompat.Builder mBuilder =
+			    new NotificationCompat.Builder(ctx)
+			    .setSmallIcon(R.drawable.ic_launcher)
+			    .setContentTitle(string)
+			    .setContentText(string2);
+		
+		// Sets an ID for the notification
+		int mNotificationId = 001;
+		// Gets an instance of the NotificationManager service
+		NotificationManager mNotifyMgr = 
+		        (NotificationManager) ctx.getSystemService(ctx.NOTIFICATION_SERVICE);
+		// Builds the notification and issues it.
+		mNotifyMgr.notify(mNotificationId, mBuilder.build());
+		
+	}
+
+	/* Overide this to handle button press events.*/
     void handleButtonPress(int buttonID,int pageNo)
     {
     	Log.i("ProtocolHandler", "unimplemented handleButtonPress(" + buttonID + "," + pageNo);

@@ -34,9 +34,9 @@ import android.provider.Telephony.Sms.Intents;
 
 public class BluetoothInterfaceService extends Service
 {
-	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e");
+	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
 	BluetoothAdapter mBluetoothAdapter;
-	BluetoothDevice mBluetoothDevice;
+	ResponseReceiver mReceiver;
 	
 	IPSocketThread  mIPSocketThread = new IPSocketThread();
 	Context ctx;
@@ -60,44 +60,49 @@ public class BluetoothInterfaceService extends Service
 
         Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
         
-        if (intent.getBooleanExtra("CONNECT", false))
-        {
-    		if(mIPSocketThread.running == false)
-    		{
-	        	mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-	    		if (mBluetoothAdapter == null) {
-	    		    // Device does not support Bluetooth
-	    		}
-	    		
-	    		if (!mBluetoothAdapter.isEnabled()) {
-	    			
-	    		}
-	    		
-	    		IntentFilter filter = new IntentFilter(SEND_PACKET);
-	    		ResponseReceiver mReceiver = new ResponseReceiver();
-	    		filter.addCategory(Intent.CATEGORY_DEFAULT);
-	    		registerReceiver(mReceiver, filter);
+		if(mIPSocketThread.running == false)
+		{
+        	mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    		if (mBluetoothAdapter == null) {
+    		    // Device does not support Bluetooth
+    			// [TODO] Handle this gracefully.
+    	        Toast.makeText(this, "Error USB not available!", Toast.LENGTH_SHORT).show();
+    	        return START_STICKY;
+    		}
+    		
+    		if (!mBluetoothAdapter.isEnabled()) {
+    	        Toast.makeText(this, "Error USB not enabled!", Toast.LENGTH_SHORT).show();
+    	        return START_STICKY;
+    		}
+    		
+    		IntentFilter filter = new IntentFilter(SEND_PACKET);
+    		mReceiver = new ResponseReceiver();
+    		filter.addCategory(Intent.CATEGORY_DEFAULT);
+    		registerReceiver(mReceiver, filter);
 
+            if (intent.getBooleanExtra("CONNECT", false))
+            {
 	        	try 
 	        	{
-	        		mIPSocketThread.mSocket = mBluetoothAdapter.getRemoteDevice(intent.getStringExtra("BT_ID")).createRfcommSocketToServiceRecord(uuid);
-	        		mIPSocketThread.mSocket.connect();
-
+	        		BluetoothSocket Socket = mBluetoothAdapter.getRemoteDevice(intent.getStringExtra("BT_ID")).createRfcommSocketToServiceRecord(uuid);
+	
 	        		Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
 	        		
+	        		mIPSocketThread.startRunning(Socket);
 	        		
-	        		mIPSocketThread.running = true;
-	        		mIPSocketThread.start();
 				} 
 	        	catch (IOException e) 
 				{
+	        		unregisterReceiver(mReceiver);
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-    		}				
-        }
-        else
-        	start();
+            }
+            else
+            {
+            	mIPSocketThread.startRunning(null);
+            }    		
+		}				
         
     	// We want this service to continue running until it is explicitly
         // stopped, so return sticky.
@@ -110,7 +115,8 @@ public class BluetoothInterfaceService extends Service
         // Tell the user we stopped.
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show();
 
-        stop();
+        mIPSocketThread.stopRunning();
+		unregisterReceiver(mReceiver);        
     }
 	
 	
@@ -124,67 +130,130 @@ public class BluetoothInterfaceService extends Service
 		DataInputStream  in;
 		ProtocolHandler  handler = new ProtocolHandler(BluetoothInterfaceService.this,0x104); 
 		
-		boolean running = false, isOpen = false;
+		boolean running = false; // Set to true before starting the thread and false when stopping the thread.
+		boolean isOpen = false;  // True when it is safe to write to the socket.
 		public void run()
 		{
-			byte header[] = new byte[6];
-			try {
-				
-				if (mSocket == null)
-				{
+			boolean server = false;
+			
+			if (mSocket == null)
+			{
+				server = true;
+				try {
 					mBluetoothSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("protocol-v2", uuid);
-								
-					mSocket = mBluetoothSocket.accept();
-				}
-				else
-				{
-				//	mSocket.connect();
-				}
-				out = new DataOutputStream(mSocket.getOutputStream());
-				in  = new DataInputStream(mSocket.getInputStream());
-				
-				synchronized(this) 
-				{
-				isOpen = true;
-				}
-				while(running)
-				{
-					int retval = in.read(header, 0, 5);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}			
+			}
+			
+			while(running)
+			{
+				try {
 					
-					Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)header[4]);
-					
-					if (retval >= 5 && header[4] > 0 && header[4] < 256)
+					if (server)
 					{
-						byte[] payload = new byte[header[4] + 1];
-						retval = in.read(payload, 0, header[4] + 1);
-						
-						Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
-						
-						handler.decodePacket(header, payload);
+						mSocket = mBluetoothSocket.accept();
 					}
-					// processing done here¦.
-					Intent broadcastIntent = new Intent();
-					broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
-					broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-					broadcastIntent.putExtra("SOCK", new String(header));
-					ctx.sendBroadcast(broadcastIntent);
-				}
-				in.close();
-				out.close();
+					else
+					{
+						mSocket.connect();
+					}
+					out = new DataOutputStream(mSocket.getOutputStream());
+					in  = new DataInputStream(mSocket.getInputStream());
 					
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-		//	} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-		//		e.printStackTrace();
+					handleConnection();
+						
+				} catch (IOException e) {
+					e.printStackTrace();
+					isOpen = false;
+				}
+				isOpen = false;
+
+				if (!server) running = false; // [TODO] handle reconnect if this is the client.
 			}
 			out = null;
 		}
-		//private void synchronized(IPSocketThread ipSocketThread) {
-			// TODO Auto-generated method stub
-			
 		
+		void handleConnection() throws IOException
+		{
+			byte header[] = new byte[6];
+
+			synchronized(this) 
+			{
+			isOpen = true;
+			}
+			while(running)
+			{
+				int retval = 0;
+				int source = in.readShort();
+				int dest   = in.readShort();
+				int length = in.readShort();
+				
+				Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
+				
+				if(!mSocket.isConnected())
+				{
+					running=false;
+					break;
+				}
+				
+				if (length > 0 && length < 65536)
+				{
+					byte[] payload = new byte[length + 1];
+					retval = in.read(payload, 0, length + 1);
+					
+					if(retval != length + 1) {running = false; break;}
+					
+					Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
+					
+					handler.decodePacket(header, payload);
+				}
+				// processing done here¦.
+				Intent broadcastIntent = new Intent();
+				broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
+				broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+				broadcastIntent.putExtra("SOCK", new String(header));
+				ctx.sendBroadcast(broadcastIntent);
+			}
+			synchronized(this) 
+			{
+			isOpen = false;
+			}
+
+			in.close();
+			out.close();
+		}
+		
+		/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
+		void stopRunning()
+		{
+			mIPSocketThread.running = false;
+			
+	        try {
+	           	if (mIPSocketThread.mSocket != null) mIPSocketThread.mSocket.close();
+	        	if (mIPSocketThread.mBluetoothSocket != null) mIPSocketThread.mBluetoothSocket.close();
+				try {
+					mIPSocketThread.join(10000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+	        } catch(IOException e) 
+	        	{
+	        		e.printStackTrace();
+	        	}
+		}
+		
+		/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
+		void startRunning(BluetoothSocket socket)
+		{
+			if(mIPSocketThread.running == false)
+			{
+				mIPSocketThread.mSocket = socket;
+				mIPSocketThread.running = true;
+				mIPSocketThread.start();
+			}
+		}
 	}
 	class ResponseReceiver extends BroadcastReceiver 
 	{	
@@ -206,48 +275,7 @@ public class BluetoothInterfaceService extends Service
 			}	
 	   	}
 	}
-	void start()
-	{
-		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-		if (mBluetoothAdapter == null) {
-		    // Device does not support Bluetooth
-		}
-		
-		if (!mBluetoothAdapter.isEnabled()) {
-			
-		}
-		
-		IntentFilter filter = new IntentFilter(SEND_PACKET);
-		ResponseReceiver mReceiver = new ResponseReceiver();
-		filter.addCategory(Intent.CATEGORY_DEFAULT);
-		registerReceiver(mReceiver, filter);
-		
-		if(mIPSocketThread.running == false)
-		{
-			mIPSocketThread.mSocket = null;
-			mIPSocketThread.running = true;
-			mIPSocketThread.start();
-		}
-	}
 	
-	void stop()
-	{
-		mIPSocketThread.running = false;
-		
-        try {
-           	if (mIPSocketThread.mSocket != null) mIPSocketThread.mSocket.close();
-        	if (mIPSocketThread.mBluetoothSocket != null) mIPSocketThread.mBluetoothSocket.close();
-			try {
-				mIPSocketThread.join(10000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-        } catch(IOException e) 
-        	{
-        		e.printStackTrace();
-        	}
-	}
-
 	@Override
 	public IBinder onBind(Intent arg0) {
 		// TODO Auto-generated method stub

@@ -73,7 +73,8 @@ public class MainActivity extends Activity {
 		Button but4 = (Button)findViewById(R.id.button4);
 		but4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
+            	mProtocolHandler.sendSMSMessage(MainActivity.this, 0x100, "Siobhán Keane", "This is a test sms message triggered using a button");
+            	//mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
             }
         });
 
