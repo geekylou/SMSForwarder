@@ -71,6 +71,8 @@ public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
 		}
 		
 		if (!mBluetoothAdapter.isEnabled()) {
+			// We shouldn't get here unless the user disable bluetooth after starting the app as this is checked for in
+			// main app startup.
 			finish();
 		}
 		

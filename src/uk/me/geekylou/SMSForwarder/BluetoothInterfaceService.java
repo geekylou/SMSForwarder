@@ -37,12 +37,15 @@ public class BluetoothInterfaceService extends Service
 	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
 	BluetoothAdapter mBluetoothAdapter;
 	ResponseReceiver mReceiver;
+	SMSResponseReceiver mSMSReceiver;
 	
-	IPSocketThread  mIPSocketThread = new IPSocketThread();
+	BluetoothSocketThread  mIPSocketThread = new BluetoothSocketThread();
 	Context ctx;
 	
 	public static final String SEND_PACKET     = "uk.me.geekylou.GPSTest.SEND_PACKET";
 	public static final String PACKET_RECEIVED = "uk.me.geekylou.GPSTest.PACKET_RECEIVED";
+	public static final String SERVICE_STATUS_UPDATE = "uk.me.geekylou.GPSTest.SERVICE_STATUS_UPDATE";
+
 	
 	public BluetoothInterfaceService(Context ctx,int port)
 	{
@@ -60,26 +63,36 @@ public class BluetoothInterfaceService extends Service
 
         Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
         
-		if(mIPSocketThread.running == false)
+		if(mIPSocketThread.running == BluetoothSocketThread.THREAD_STOPPED)
 		{
         	mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     		if (mBluetoothAdapter == null) {
     		    // Device does not support Bluetooth
     			// [TODO] Handle this gracefully.
-    	        Toast.makeText(this, "Error USB not available!", Toast.LENGTH_SHORT).show();
+    	        Toast.makeText(this, "Error Bluetooth not available!", Toast.LENGTH_SHORT).show();
     	        return START_STICKY;
     		}
     		
     		if (!mBluetoothAdapter.isEnabled()) {
-    	        Toast.makeText(this, "Error USB not enabled!", Toast.LENGTH_SHORT).show();
+    			// We shouldn't get here unless the user disable bluetooth after starting the app as this is checked for in
+    			// main app startup.
+    	        Toast.makeText(this, "Error Bluetooth not enabled!", Toast.LENGTH_SHORT).show();
     	        return START_STICKY;
     		}
     		
+    		// Register intents for both IPC from other Activity to activity on other host and system events
+    		// we want to notify the other host of.
     		IntentFilter filter = new IntentFilter(SEND_PACKET);
     		mReceiver = new ResponseReceiver();
     		filter.addCategory(Intent.CATEGORY_DEFAULT);
     		registerReceiver(mReceiver, filter);
+    		
+    		filter = new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION);
+    		filter.addCategory(Intent.CATEGORY_DEFAULT);
+    		mSMSReceiver = new SMSResponseReceiver();
+    		registerReceiver(mSMSReceiver, filter);
 
+    		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
             if (intent.getBooleanExtra("CONNECT", false))
             {
 	        	try 
@@ -93,6 +106,7 @@ public class BluetoothInterfaceService extends Service
 				} 
 	        	catch (IOException e) 
 				{
+	        		// We shouldn't get here unless the caller is giving us invalid data.
 	        		unregisterReceiver(mReceiver);
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -118,143 +132,242 @@ public class BluetoothInterfaceService extends Service
         mIPSocketThread.stopRunning();
 		unregisterReceiver(mReceiver);        
     }
-	
-	
-	class IPSocketThread extends Thread
+
+	void statusUpdate(String status)
 	{
-		public Object lock = new Object();
-		String msg = "";
-		BluetoothServerSocket mBluetoothSocket;
-		BluetoothSocket       mSocket;
-		DataOutputStream out = null;
-		DataInputStream  in;
-		ProtocolHandler  handler = new ProtocolHandler(BluetoothInterfaceService.this,0x104); 
-		
-		boolean running = false; // Set to true before starting the thread and false when stopping the thread.
-		boolean isOpen = false;  // True when it is safe to write to the socket.
-		public void run()
-		{
-			boolean server = false;
-			
-			if (mSocket == null)
-			{
-				server = true;
-				try {
-					mBluetoothSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("protocol-v2", uuid);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}			
-			}
-			
-			while(running)
-			{
-				try {
-					
-					if (server)
-					{
-						mSocket = mBluetoothSocket.accept();
-					}
-					else
-					{
-						mSocket.connect();
-					}
-					out = new DataOutputStream(mSocket.getOutputStream());
-					in  = new DataInputStream(mSocket.getInputStream());
-					
-					handleConnection();
-						
-				} catch (IOException e) {
-					e.printStackTrace();
-					isOpen = false;
-				}
-				isOpen = false;
+		// processing done here¦.
+		Intent broadcastIntent = new Intent();
+		broadcastIntent.setAction(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
+		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+		broadcastIntent.putExtra("STATUS", new String(status));
+		ctx.sendBroadcast(broadcastIntent);
 
-				if (!server) running = false; // [TODO] handle reconnect if this is the client.
-			}
-			out = null;
-		}
-		
-		void handleConnection() throws IOException
-		{
-			byte header[] = new byte[6];
-
-			synchronized(this) 
-			{
-			isOpen = true;
-			}
-			while(running)
-			{
-				int retval = 0;
-				int source = in.readShort();
-				int dest   = in.readShort();
-				int length = in.readShort();
-				
-				Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
-				
-				if(!mSocket.isConnected())
-				{
-					running=false;
-					break;
-				}
-				
-				if (length > 0 && length < 65536)
-				{
-					byte[] payload = new byte[length + 1];
-					retval = in.read(payload, 0, length + 1);
-					
-					if(retval != length + 1) {running = false; break;}
-					
-					Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
-					
-					handler.decodePacket(header, payload);
-				}
-				// processing done here¦.
-				Intent broadcastIntent = new Intent();
-				broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
-				broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-				broadcastIntent.putExtra("SOCK", new String(header));
-				ctx.sendBroadcast(broadcastIntent);
-			}
-			synchronized(this) 
-			{
-			isOpen = false;
-			}
-
-			in.close();
-			out.close();
-		}
-		
-		/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
-		void stopRunning()
-		{
-			mIPSocketThread.running = false;
-			
-	        try {
-	           	if (mIPSocketThread.mSocket != null) mIPSocketThread.mSocket.close();
-	        	if (mIPSocketThread.mBluetoothSocket != null) mIPSocketThread.mBluetoothSocket.close();
-				try {
-					mIPSocketThread.join(10000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-	        } catch(IOException e) 
-	        	{
-	        		e.printStackTrace();
-	        	}
-		}
-		
-		/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
-		void startRunning(BluetoothSocket socket)
-		{
-			if(mIPSocketThread.running == false)
-			{
-				mIPSocketThread.mSocket = socket;
-				mIPSocketThread.running = true;
-				mIPSocketThread.start();
-			}
-		}
 	}
+	
+    class BluetoothSocketThread extends Thread
+    {
+    	// We use the running variable not only to stop the thread but also so we know when it's safe to restart it.
+    	// (starting a thread which is already started will cause an exception).  So we know it's safe to restart the
+    	// thread we set running=THREAD_CLOSING when we want it to shutdown.  It will then set running=THREAD_STOPPED
+    	// when it is finished running and it is now safe to restart the thread.
+    	static final int THREAD_STOPPED = 0;
+    	static final int THREAD_RUNNING = 1;
+    	static final int THREAD_CLOSING = 2;
+    	
+    	public Object lock = new Object();
+    	String msg = "";
+    	BluetoothServerSocket mBluetoothSocket;
+    	BluetoothSocket       mSocket;
+    	DataOutputStream out = null;
+    	DataInputStream  in;
+    	ProtocolHandler  handler = new ProtocolHandler(BluetoothInterfaceService.this,0x104);; 
+    	BluetoothAdapter mAdapter;
+    	
+    	int running = 0; // Set to true before starting the thread and false when stopping the thread.
+    	boolean isOpen = false;  // True when it is safe to write to the socket.
+    	
+    	public void run()
+    	{
+    		boolean server = false;
+    		
+    		if (mSocket == null)
+    		{
+    			server = true;
+    			try {
+    				mBluetoothSocket = mBluetoothAdapter.listenUsingRfcommWithServiceRecord("protocol-v2", uuid);
+    			} catch (IOException e) {
+    				// TODO Auto-generated catch block
+    				e.printStackTrace();
+    			}			
+				statusUpdate("Disconnected.  Waiting for connection.");
+    		}
+    		
+    		while(running == THREAD_RUNNING)
+    		{
+    			try {
+    				
+    				if (server)
+    				{
+    					statusUpdate("Disconnected.  Waiting for connection.");
+    					mSocket = mBluetoothSocket.accept();
+    				}
+    				else
+    				{
+						if (running != THREAD_RUNNING) break;
+						statusUpdate("Connecting.");
+    					mSocket.connect();
+    				}
+					statusUpdate("Connected.");
+
+    				out = new DataOutputStream(mSocket.getOutputStream());
+    				in  = new DataInputStream(mSocket.getInputStream());
+    				
+    				handleConnection();
+
+    			} catch (IOException e) {
+    				e.printStackTrace();
+    				isOpen = false;
+    			}
+
+    			if (!server)
+				{
+					statusUpdate("Waiting to reconnect.");
+					try {
+						sleep(4000);
+					} catch (InterruptedException e) 
+					{
+						/* There's not anything worth doing here if we get an interrupted exception.*/
+					}
+				}		
+
+    			isOpen = false;
+
+        		out = null;
+    		}
+    		running = THREAD_STOPPED;
+    	}
+    	
+    	void handleConnection() throws IOException
+    	{
+    		byte header[] = new byte[6];
+
+    		synchronized(this) 
+    		{
+    		isOpen = true;
+    		}
+    		while(running == THREAD_RUNNING)
+    		{
+    			int retval = 0;
+    			int source = in.readShort();
+    			int dest   = in.readShort();
+    			int length = in.readShort();
+    			
+    			Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
+    			
+    			if(!mSocket.isConnected())
+    			{
+    				break;
+    			}
+    			
+    			if (length > 0 && length < 65536)
+    			{
+    				byte[] payload = new byte[length + 1];
+    				retval = in.read(payload, 0, length + 1);
+    				
+    				if(retval != length + 1) {running = THREAD_CLOSING; break;}
+    				
+    				Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
+    				
+    				handler.decodePacket(header, payload);
+    			}
+    			// processing done here¦.
+    			Intent broadcastIntent = new Intent();
+    			broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
+    			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+    			broadcastIntent.putExtra("SOCK", new String(header));
+    			ctx.sendBroadcast(broadcastIntent);
+    		}
+    		synchronized(this) 
+    		{
+    		isOpen = false;
+    		}
+
+    		in.close();
+    		out.close();
+    	}
+    	    	
+    	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
+    	void stopRunning()
+    	{
+    		running = THREAD_CLOSING;
+    		
+            try {
+               	if (mSocket != null) mSocket.close();
+            	if (mBluetoothSocket != null) mBluetoothSocket.close();
+    			try {
+    				join(10000);
+    			} catch (InterruptedException e) {
+    				e.printStackTrace();
+    			}
+            } catch(IOException e) 
+            	{
+            		e.printStackTrace();
+            	}
+    		running = THREAD_STOPPED;
+    		statusUpdate("Service stopped.");
+    	}
+    	
+    	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
+    	void startRunning(BluetoothSocket socket)
+    	{
+    		if(running == THREAD_STOPPED)
+    		{
+    			mSocket = socket;
+    			running = THREAD_RUNNING;
+    			start();
+    		}
+    	}
+    }
+
+	class SMSResponseReceiver extends BroadcastReceiver {
+		ProtocolHandler  mProtocolHandler;
+		
+		SMSResponseReceiver()
+		{
+			super();
+			mProtocolHandler = new ProtocolHandler(ctx,0x104);
+
+		}
+	   @Override
+	    public void onReceive(Context context, Intent intent) 
+	   	{	     
+		   // Retrieves a map of extended data from the intent.
+	       final Bundle bundle = intent.getExtras();
+	 
+	       try {
+	             
+	           if (bundle != null) {
+	                 
+	        	   final Object[] pdusObj = (Object[]) bundle.get("pdus");
+	                 
+	               for (int i = 0; i < pdusObj.length; i++) {
+	                     
+	            	   SmsMessage currentMessage = SmsMessage.createFromPdu((byte[]) pdusObj[i]);
+	            	   String phoneNumber = currentMessage.getDisplayOriginatingAddress();
+	                     
+	            	   String senderNum = phoneNumber;
+	            	   String message = currentMessage.getDisplayMessageBody();
+	 
+	            	   Log.i("SmsReceiver", "senderNum: "+ senderNum + "; message: " + message);
+	                     
+	 
+                   		// Show Alert
+	            	   int duration = Toast.LENGTH_LONG;
+	            	   Toast toast = Toast.makeText(BluetoothInterfaceService.this, 
+	            			   "senderNum: "+ senderNum + ", message: " + message, duration);
+	            	   toast.show();
+	                 
+	            	   if (mIPSocketThread.isOpen)
+	       				{
+	       					try {
+	       						// No point in just looping back an intent to be handled by ourselves so create
+	       						// a message ourselves and inject it into the output stream.
+	       		            	byte buf[] = ProtocolHandler.CreatePacket(0x100,0x104,ProtocolHandler.CreateSMSPacket(senderNum, message));
+	       		            	mIPSocketThread.out.write(buf);
+	       					} catch (IOException e) {
+	       						// TODO Auto-generated catch block
+	       						e.printStackTrace();
+	       					}
+	       				}	
+	               } // end for loop
+	          } // bundle is null
+	        } catch (Exception e) {
+	            Log.e("SmsReceiver", "Exception smsReceiver" +e);
+	         
+	        }
+	   	}
+}    
+    
 	class ResponseReceiver extends BroadcastReceiver 
 	{	
 		ResponseReceiver()
@@ -282,7 +395,6 @@ public class BluetoothInterfaceService extends Service
 		return null;
 	}
 }
-
 
 
 
@@ -539,58 +651,7 @@ public class BluetoothInterfaceService extends Service {
 		
 	}
 	
-	class ResponseReceiver extends BroadcastReceiver {
-		
-			ResponseReceiver()
-			{
-				super();
-			}
-		   @Override
-		    public void onReceive(Context context, Intent intent) 
-		   	{	     
-			   // Retrieves a map of extended data from the intent.
-		       final Bundle bundle = intent.getExtras();
-		 
-		       try {
-		             
-		           if (bundle != null) {
-		                 
-		        	   final Object[] pdusObj = (Object[]) bundle.get("pdus");
-		                 
-		               for (int i = 0; i < pdusObj.length; i++) {
-		                     
-		            	   SmsMessage currentMessage = SmsMessage.createFromPdu((byte[]) pdusObj[i]);
-		            	   String phoneNumber = currentMessage.getDisplayOriginatingAddress();
-		                     
-		            	   String senderNum = phoneNumber;
-		            	   String message = currentMessage.getDisplayMessageBody();
-		 
-		            	   Log.i("SmsReceiver", "senderNum: "+ senderNum + "; message: " + message);
-		                     
-		 
-	                   		// Show Alert
-		            	   int duration = Toast.LENGTH_LONG;
-		            	   Toast toast = Toast.makeText(BluetoothInterfaceService.this, 
-		            			   "senderNum: "+ senderNum + ", message: " + message, duration);
-		            	   toast.show();
-		                 
-		            	   if (mIPSocketThread.isOpen)
-		       				{
-		       					try {
-		       						mIPSocketThread.out.writeBytes("SMS:"+senderNum+":"+message+"\n");
-		       					} catch (IOException e) {
-		       						// TODO Auto-generated catch block
-		       						e.printStackTrace();
-		       					}
-		       				}	
-		               } // end for loop
-		          } // bundle is null
-		        } catch (Exception e) {
-		            Log.e("SmsReceiver", "Exception smsReceiver" +e);
-		         
-		        }
-		   	}
-    }    
+
 }
 
 */

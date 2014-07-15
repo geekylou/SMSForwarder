@@ -7,6 +7,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -45,6 +46,16 @@ public class MainActivity extends Activity {
 
 		txtLOC.setText(prefs.getString("BT_ID", "")+":"+prefs.getString("BT_NAME",""));
 		
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		if (mBluetoothAdapter == null) {
+		    // Device does not support Bluetooth
+		}
+
+		if (!mBluetoothAdapter.isEnabled()) {
+		    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+		    int REQUEST_ENABLE_BT=45;
+			startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+		}
 		
 		Button butStart= (Button)findViewById(R.id.buttonStart);
 		butStart.setOnClickListener(new View.OnClickListener() {
@@ -73,7 +84,7 @@ public class MainActivity extends Activity {
 		Button but4 = (Button)findViewById(R.id.button4);
 		but4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendSMSMessage(MainActivity.this, 0x100, "Siobhán Keane", "This is a test sms message triggered using a button");
+            	mProtocolHandler.sendSMSMessage(MainActivity.this, 0x100, "+447968975566", "This is a test sms message triggered using a button");
             	//mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
             }
         });
@@ -105,7 +116,7 @@ public class MainActivity extends Activity {
 			mBluetoothService.putExtra("CONNECT", checkConnect.isChecked());
 			mBluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));
 			
-			IntentFilter filter = new IntentFilter(BluetoothInterfaceService.PACKET_RECEIVED);
+			IntentFilter filter = new IntentFilter(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
 			filter.addCategory(Intent.CATEGORY_DEFAULT);
 			receiver = new ResponseReceiver();
 			registerReceiver(receiver, filter);
@@ -131,8 +142,6 @@ public class MainActivity extends Activity {
 	}
 	
 	class ResponseReceiver extends BroadcastReceiver {
-		public static final String ACTION_RESP =
-			      "uk.me.geekylou.GPSTest.MESSAGE_PROCESSED";
 			ResponseReceiver()
 			{
 				super();
@@ -143,7 +152,7 @@ public class MainActivity extends Activity {
 		       if (text != null) txtGPS.setText(text);
 		       text = intent.getStringExtra("NET");
 		       if (text != null) txtLOC.setText(text);
-		       text = intent.getStringExtra("SOCK");
+		       text = intent.getStringExtra("STATUS");
 		       if (text != null) txtSock.setText(text);
 		       
 		    }

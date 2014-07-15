@@ -5,13 +5,21 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
 import uk.me.geekylou.SMSForwarder.R;
 
 import android.app.NotificationManager;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -35,7 +43,6 @@ public class ProtocolHandler
 	{
 	   byte CRC=0;
 	   byte genPoly = 0x07;
-	   byte chr;
 	   for (int x=0; x < j; x++)
 	   {
 	      byte i;
@@ -52,12 +59,13 @@ public class ProtocolHandler
 	   return CRC;
 	}
 	
+	/* Replaced by decodePacket.
 	int ReceivePacketFromBuffer(byte[] packetData)
 	{
 		ByteArrayInputStream outStr = new ByteArrayInputStream(packetData, 0, packetData.length);
 		DataInputStream      dataOut = new DataInputStream(outStr);
 		return 0;
-	}
+	}*/
 
 	byte []CreateDBGPacket(String str) throws IOException
 	{
@@ -182,13 +190,40 @@ public class ProtocolHandler
 		}
     }
     
-    void handleSMSMessage(String string, String string2) {
+    void handleSMSMessage(String sender, String message) 
+    {
+    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
+    	
+    	// define the columns to return for getting the name of the sender.
+    	String[] projection = new String[] {
+    	        ContactsContract.PhoneLookup.DISPLAY_NAME,
+    	        ContactsContract.PhoneLookup._ID};
+    	
+    	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
+
+    	// query time
+    	Cursor cursor = ctx.getContentResolver().query(uri, projection, null, null, null);
 
     	NotificationCompat.Builder mBuilder =
 			    new NotificationCompat.Builder(ctx)
-			    .setSmallIcon(R.drawable.ic_launcher)
-			    .setContentTitle(string)
-			    .setContentText(string2);
+    			.setSmallIcon(R.drawable.ic_launcher)
+			    .setContentText(message);
+
+    	if (cursor.moveToFirst()) 
+    	{
+    	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+    		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
+    		
+    	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+    		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+    		
+        	Bitmap bitmap = BitmapFactory.decodeStream(bitmapStream);
+        	
+        	if (bitmap != null)
+        		mBuilder.setLargeIcon(bitmap);
+    	}
+    	
+    	mBuilder.setContentTitle(sender);
 		
 		// Sets an ID for the notification
 		int mNotificationId = 001;
@@ -203,6 +238,8 @@ public class ProtocolHandler
 	/* Overide this to handle button press events.*/
     void handleButtonPress(int buttonID,int pageNo)
     {
+    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
+    	// Also this is purely a test implementation so should do something sensible.
     	Log.i("ProtocolHandler", "unimplemented handleButtonPress(" + buttonID + "," + pageNo);
     	
     	NotificationCompat.Builder mBuilder =
