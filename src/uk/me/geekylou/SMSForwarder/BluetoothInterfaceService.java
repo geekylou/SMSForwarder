@@ -352,7 +352,11 @@ public class BluetoothInterfaceService extends Service
 	       					try {
 	       						// No point in just looping back an intent to be handled by ourselves so create
 	       						// a message ourselves and inject it into the output stream.
-	       		            	byte buf[] = ProtocolHandler.CreatePacket(0x100,0x104,ProtocolHandler.CreateSMSPacket(senderNum, message));
+	       		            	byte buf[] = ProtocolHandler.CreatePacket(0x100,0x104,
+											  ProtocolHandler.CreateSMSPacket(ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,
+											  0, /* id not used on this type of request. */
+											  senderNum, 
+											  message));
 	       		            	mIPSocketThread.out.write(buf);
 	       					} catch (IOException e) {
 	       						// TODO Auto-generated catch block
