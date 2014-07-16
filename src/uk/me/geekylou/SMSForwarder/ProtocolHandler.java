@@ -138,7 +138,7 @@ public class ProtocolHandler
 			byte[] buf = CreatePacket(sourceAddress,destination,CreateSMSPacket(type,id,sender,payload));
 			
 			Intent broadcastIntent = new Intent();
-			broadcastIntent.setAction(TCPPacketHandler.SEND_PACKET);
+			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
 			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 			broadcastIntent.putExtra("packetData", buf);
 			ctx.sendBroadcast(broadcastIntent);
@@ -154,7 +154,7 @@ public class ProtocolHandler
 			byte[] buf = CreatePacket(sourceAddress,destination,CreateButtonPressPacket(buttonID,pageNo));
 			
 			Intent broadcastIntent = new Intent();
-			broadcastIntent.setAction(TCPPacketHandler.SEND_PACKET);
+			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
 			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 			broadcastIntent.putExtra("packetData", buf);
 			ctx.sendBroadcast(broadcastIntent);

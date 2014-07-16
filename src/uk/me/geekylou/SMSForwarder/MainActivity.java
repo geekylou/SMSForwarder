@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
         });	
 		
 		Intent broadcastIntent = new Intent();
-		broadcastIntent.setAction(TCPPacketHandler.SEND_PACKET);
+		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
 		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 		broadcastIntent.putExtra("STATUS", true);
 		sendBroadcast(broadcastIntent);
