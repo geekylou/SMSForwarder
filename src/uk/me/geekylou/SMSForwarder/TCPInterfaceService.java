@@ -40,7 +40,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
 	        	{
 	        		InetAddress peer = InetAddress.getByName("192.168.0.101");
 	        		
-	        		((TCPIPSocketThread)mSocketThread).startRunning(peer);
+	        		((TCPIPSocketThread)mSocketThread).startRunning(peer,9100);
 	        		
 				} 
 	        	catch (IOException e) 
@@ -54,7 +54,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
             }
             else
             {
-            	((TCPIPSocketThread)mSocketThread).startRunning(null);
+            	((TCPIPSocketThread)mSocketThread).startRunning(null,9100);
             }    		
 		}				
         
@@ -68,14 +68,9 @@ class TCPIPInterfaceService extends InterfaceBaseService
     	
     	ServerSocket mBluetoothSocket;
     	Socket       mSocket;
-    	DataOutputStream out = null;
-    	DataInputStream  in;
-    	
-    	InetAddress mPeerAddress;
-    	
-    	int running = 0; // Set to true before starting the thread and false when stopping the thread.
-    	boolean isOpen = false;  // True when it is safe to write to the socket.
-    
+    	InetAddress  mPeerAddress;
+    	int			 mPort;
+    	    
     	void initServerConnection()
     	{
     	}
@@ -89,7 +84,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
 			}
 			else
 			{
-				mSocket = new Socket(mPeerAddress,9100);
+				mSocket = new Socket(mPeerAddress,mPort);
 				statusUpdate("Connecting.");
 			}
 			statusUpdate("Connected.");
@@ -110,10 +105,11 @@ class TCPIPInterfaceService extends InterfaceBaseService
     	}
     	
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
-    	void startRunning(InetAddress peerAddress)
+    	void startRunning(InetAddress peerAddress, int port)
     	{
     		if(running == THREAD_STOPPED)
     		{
+    			mPort        = port;
     			mPeerAddress = peerAddress;
     			if (mPeerAddress != null)
     			{

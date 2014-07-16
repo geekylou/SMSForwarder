@@ -85,13 +85,8 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     	
     	BluetoothServerSocket mBluetoothSocket;
     	BluetoothSocket       mSocket;
-    	DataOutputStream out = null;
-    	DataInputStream  in;
-    	BluetoothAdapter mAdapter;
-    	
-    	int running = 0; // Set to true before starting the thread and false when stopping the thread.
-    	boolean isOpen = false;  // True when it is safe to write to the socket.
-    
+    	BluetoothAdapter 	  mAdapter;
+    	   
     	void initServerConnection()
     	{
     		try {
