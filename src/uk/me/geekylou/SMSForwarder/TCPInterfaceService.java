@@ -27,7 +27,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
 
-        Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Service Started" + intent.getStringExtra("PEER_ADDRESS") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
         
 		if(mSocketThread.running == SocketThread.THREAD_STOPPED)
 		{  		
@@ -38,9 +38,9 @@ class TCPIPInterfaceService extends InterfaceBaseService
             {
 	        	try 
 	        	{
-	        		InetAddress peer = InetAddress.getByName("192.168.0.101");
+	        		InetAddress peer = InetAddress.getByName(intent.getStringExtra("PEER_ADDRESS"));
 	        		
-	        		((TCPIPSocketThread)mSocketThread).startRunning(peer,9100);
+	        		((TCPIPSocketThread)mSocketThread).startRunning(peer,intent.getIntExtra("PEER_PORT", 9100));
 	        		
 				} 
 	        	catch (IOException e) 
