@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
+		setContentView(R.layout.activity_debug);
 
 		mBluetoothService = new Intent(this,BluetoothInterfaceService.class);
 		mProtocolHandler  = new ProtocolHandler(this,0x104);
@@ -123,6 +123,7 @@ public class MainActivity extends Activity {
 		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 		broadcastIntent.putExtra("STATUS", true);
 		sendBroadcast(broadcastIntent);
+		
 	}
 
 	void StartLocation()

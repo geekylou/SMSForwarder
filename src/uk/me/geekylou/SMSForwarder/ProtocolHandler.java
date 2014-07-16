@@ -24,6 +24,7 @@ import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.NotificationCompat;
 import android.telephony.SmsManager;
 import android.util.Log;
+import android.widget.TextView;
 
 public class ProtocolHandler 
 {
@@ -206,6 +207,8 @@ public class ProtocolHandler
     void handleSMSMessage(int type,int id,String sender, String message) 
     {
     	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
+    
+    	Cursor cursor;
     	
     	switch(type)
     	{
@@ -218,7 +221,7 @@ public class ProtocolHandler
 	    	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
 	
 	    	// query time
-	    	Cursor cursor = ctx.getContentResolver().query(uri, projection, null, null, null);
+	    	cursor = ctx.getContentResolver().query(uri, projection, null, null, null);
 	
 	    	NotificationCompat.Builder mBuilder =
 				    new NotificationCompat.Builder(ctx)
@@ -252,9 +255,23 @@ public class ProtocolHandler
     	case SMS_MESSAGE_TYPE_SEND:
     		/* Sender is destination no. in the case of a send type.*/
     		SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
-    	}		
-	}
-
+    		break;
+    	case SMS_MESSAGE_TYPE_REQUEST:
+			{
+				String msgData = "";
+				cursor = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);
+				cursor.moveToFirst();
+		
+				do{	
+					sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE,
+								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
+								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
+								cursor.getString(cursor.getColumnIndexOrThrow("body")));
+				}while(cursor.moveToNext());
+				
+			}
+    	}
+    }
 	/* Overide this to handle button press events.*/
     void handleButtonPress(int buttonID,int pageNo)
     {

@@ -102,4 +102,52 @@
         android:layout_alignLeft="@+id/buttonStart"
         android:text="Connect to Other Bt Device" />
 
+    <EditText
+        android:id="@+id/editDBGOut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/textView3"
+        android:layout_below="@+id/textView3"
+        android:ems="10"
+        android:inputType="textMultiLine" >
+
+        <requestFocus />
+    </EditText>
+
+    <Button
+        android:id="@+id/buttonStartIP"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button2"
+        android:layout_alignLeft="@+id/button1"
+        android:layout_marginBottom="19dp"
+        android:text="Start" />
+
+    <Button
+        android:id="@+id/buttonStopIP"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/buttonStartIP"
+        android:layout_alignBottom="@+id/buttonStartIP"
+        android:layout_alignLeft="@+id/buttonStop"
+        android:text="Stop" />
+
+    <EditText
+        android:id="@+id/editText1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/buttonStartIP"
+        android:layout_alignBottom="@+id/buttonStartIP"
+        android:layout_toLeftOf="@+id/buttonStopIP"
+        android:layout_toRightOf="@+id/buttonStartIP"
+        android:ems="10" />
+
+    <CheckBox
+        android:id="@+id/checkBoxIPConnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/buttonStartIP"
+        android:layout_alignLeft="@+id/buttonStartIP"
+        android:text="Connect to other TCPIP host" />
+
 </RelativeLayout>
