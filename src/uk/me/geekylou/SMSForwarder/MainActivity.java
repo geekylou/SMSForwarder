@@ -5,7 +5,10 @@ import uk.me.geekylou.SMSForwarder.R;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Contacts;
+import android.provider.ContactsContract;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
@@ -13,6 +16,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -21,6 +25,8 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
+	protected static final int CONTACT = 0;
+	protected static final int PICK_CONTACT = 0;
 	Intent          mBluetoothService;
 	ResponseReceiver receiver;
 	ProtocolHandler  mProtocolHandler;
@@ -80,6 +86,10 @@ public class MainActivity extends Activity {
 		but3.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,2,0);
+            	
+            	@SuppressWarnings("deprecation")
+				Intent intent = new Intent(Intent.ACTION_PICK, Contacts.Phones.CONTENT_URI);
+            	startActivityForResult(intent, CONTACT); 
             }
         });
 		Button but4 = (Button)findViewById(R.id.button4);
@@ -107,6 +117,12 @@ public class MainActivity extends Activity {
 				// TODO Auto-generated method stub
             }
         });	
+		
+		Intent broadcastIntent = new Intent();
+		broadcastIntent.setAction(TCPPacketHandler.SEND_PACKET);
+		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+		broadcastIntent.putExtra("STATUS", true);
+		sendBroadcast(broadcastIntent);
 	}
 
 	void StartLocation()
@@ -158,4 +174,13 @@ public class MainActivity extends Activity {
 		       
 		    }
 		}
+	public void onActivityResult (int requestCode, int resultCode, Intent intent) 
+	{
+		  if (resultCode != Activity.RESULT_OK || requestCode != CONTACT) return;
+		  Cursor c = managedQuery(intent.getData(), null, null, null, null);
+		  if (c.moveToFirst()) {
+		     String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
+		     // yay
+		  }
+	}
 }
