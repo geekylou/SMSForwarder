@@ -9,7 +9,7 @@
     tools:context=".MainActivity" >
 
     <TextView
-        android:id="@+id/textView1"
+        android:id="@+id/textViewDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/hello_world" />
@@ -27,7 +27,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/textView1"
+        android:layout_below="@+id/textViewDate"
         android:text="GPS:"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
@@ -149,5 +149,14 @@
         android:layout_above="@+id/buttonStartIP"
         android:layout_alignLeft="@+id/buttonStartIP"
         android:text="Connect to other TCPIP host" />
+
+    <Button
+        android:id="@+id/buttonStartInboxActivity"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/checkBoxIPConnect"
+        android:layout_alignLeft="@+id/checkBoxIPConnect"
+        android:text="StartInboxActivity" />
 
 </RelativeLayout>

@@ -1,8 +1,13 @@
 package uk.me.geekylou.SMSForwarder;
 
+import android.graphics.Bitmap;
+import android.net.Uri;
+
 public class InboxEntry {
-	String sender,message;
-	int    id;
+	public String sender,message;
+	public Bitmap bitmap;
+	public int    id;
+	public Uri uri;
 	
 	public String toString()
 	{

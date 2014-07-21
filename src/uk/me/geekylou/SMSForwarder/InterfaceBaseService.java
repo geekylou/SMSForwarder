@@ -26,7 +26,7 @@ abstract class InterfaceBaseService extends Service
 	BluetoothAdapter mBluetoothAdapter;
 	ResponseReceiver mReceiver;
 	SMSResponseReceiver mSMSReceiver;
-	String status;
+	String status="";
 	
 	SocketThread  mSocketThread;
 	
@@ -304,7 +304,9 @@ abstract class InterfaceBaseService extends Service
     	   if (mSocketThread.isOpen)
 			{
 				try {
-					mSocketThread.out.write(intent.getByteArrayExtra ("packetData"));
+					byte packetData[] = intent.getByteArrayExtra ("packetData");
+					if(packetData != null)
+						mSocketThread.out.write(packetData);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

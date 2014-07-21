@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 
 import org.json.JSONException;
@@ -19,6 +20,7 @@ import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -26,10 +28,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.provider.MediaStore;
+import android.provider.ContactsContract.PhoneLookup;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -43,11 +50,44 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.view.LayoutInflater;
 
-public class InboxActivity<BluetoothChooser> extends Activity {
+class ImageViewAdapter extends ArrayAdapter<InboxEntry>
+{
+	private static LayoutInflater inflater=null;
+	
+	public ImageViewAdapter(Context context, int textViewResourceId) {
+		super(context, textViewResourceId);		
+		
+		inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+	}
+	
+	public View getView(int position, View convertView, ViewGroup parent) {
+		View vi=convertView;
+        if(convertView==null)
+            vi = inflater.inflate(R.layout.text_preview_item, null);
+        
+        InboxEntry entry = this.getItem(position);
+        
+        TextView textBody=(TextView)vi.findViewById(R.id.textViewBody);
+        TextView textFooter=(TextView)vi.findViewById(R.id.textViewFooter);
+        ImageView imageViewIcon = (ImageView)vi.findViewById(R.id.imageViewIcon);
+        
+        textBody.setText(entry.sender);
+        textFooter.setText(entry.message);
+        
+//        if (entry.bitmap != null)
+        	imageViewIcon.setImageBitmap(entry.bitmap);
+
+        //vi.setBackgroundColor(Color.GREEN);
+        return vi;
+	}
+}
+
+public class InboxActivity extends Activity {
 	private ListView mInboxEntriesView;
 	private ArrayAdapter<InboxEntry> mBluetoothDeviceArrayAdapter;
 	static final int REQUEST_NEW_ENTRY = 1000;
@@ -55,6 +95,9 @@ public class InboxActivity<BluetoothChooser> extends Activity {
 	private SharedPreferences prefs;
 	InboxProtocolHandler  mProtocolHandler;
 	private ResponseReceiver receiver;
+	static String[] mProjections = new String[] {
+	        ContactsContract.PhoneLookup.DISPLAY_NAME,
+	        ContactsContract.PhoneLookup._ID};;
 	
     /** Called when the activity is first created. */
     @Override
@@ -63,7 +106,7 @@ public class InboxActivity<BluetoothChooser> extends Activity {
      
         setContentView(R.layout.bluetooth_chooser);
 
-        mBluetoothDeviceArrayAdapter = new ArrayAdapter<InboxEntry>(this, R.layout.text_preview_item);
+        mBluetoothDeviceArrayAdapter = new ImageViewAdapter(this, R.layout.text_preview_item);
 		        
 		mProtocolHandler  = new InboxProtocolHandler(this,0x104);
     	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "");
@@ -75,8 +118,12 @@ public class InboxActivity<BluetoothChooser> extends Activity {
 		
 		mInboxEntriesView = (ListView) findViewById(R.id.listView1);
         mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);
-        
-     
+    }
+    
+    protected void onDestroy()
+    {
+    	unregisterReceiver(receiver);
+    	super.onDestroy();
     }
     class InboxProtocolHandler extends ProtocolHandler {
 
@@ -95,11 +142,35 @@ public class InboxActivity<BluetoothChooser> extends Activity {
 	    	{
 	    	case SMS_MESSAGE_TYPE_RESPONSE:
 	    		InboxEntry entry = new InboxEntry();
-	        	entry.sender  = sender;
+	    		
+	        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
+
+	        	// query time
+	        	cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+
+	        	if (cursor.moveToFirst()) 
+	        	{
+	        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+	        		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
+	        		
+	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+	        		
+	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
+	            	
+	            	entry.uri = photoUri;
+	        	}
+
+	        	if (entry.bitmap == null)
+            		entry.bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
+
+            	entry.sender  = sender;
 	        	entry.message = message;
 	        	entry.id      = id;
 	        	
 	            mBluetoothDeviceArrayAdapter.add(entry);
+
+	            cursor.close();
 	    	}
     	}
     }

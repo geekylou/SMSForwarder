@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
 		mBluetoothService = new Intent(this,BluetoothInterfaceService.class);
 		mProtocolHandler  = new ProtocolHandler(this,0x104);
 		
-		txtSock = (TextView)findViewById(R.id.textView1);
+		txtSock = (TextView)findViewById(R.id.textViewDate);
 		txtGPS = (TextView)findViewById(R.id.textView2);
 		txtLOC = (TextView)findViewById(R.id.textView3);
 		
@@ -74,7 +74,13 @@ public class MainActivity extends Activity {
 		Button but1= (Button)findViewById(R.id.button1);
 		but1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,0,0);
+        		Intent broadcastIntent = new Intent();
+        		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+        		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+        		broadcastIntent.putExtra("requestStatus", true);
+        		sendBroadcast(broadcastIntent);
+
+//            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,0,0);
             }
         });
 		Button but2= (Button)findViewById(R.id.button2);
@@ -112,43 +118,61 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
             	Intent intent = new Intent(MainActivity.this, BluetoothChooserActivity.class);
 				intent.setAction(intent.ACTION_INSERT);
-        		intent.putExtra("Tags","note");
 				startActivityForResult(intent,0);
 				// TODO Auto-generated method stub
             }
         });	
 		
+		Button butInboxActivity = (Button)findViewById(R.id.buttonStartInboxActivity);
+		butInboxActivity.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+            	Intent intent = new Intent(MainActivity.this, InboxActivity.class);
+				intent.setAction(intent.ACTION_VIEW);
+				startActivityForResult(intent,0);
+				// TODO Auto-generated method stub
+            }
+        });
+		
+		IntentFilter filter = new IntentFilter(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
+		filter.addCategory(Intent.CATEGORY_DEFAULT);
+		receiver = new ResponseReceiver();
+		registerReceiver(receiver, filter);
+		
 		Intent broadcastIntent = new Intent();
 		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
 		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-		broadcastIntent.putExtra("STATUS", true);
+		broadcastIntent.putExtra("requestStatus", true);
 		sendBroadcast(broadcastIntent);
 		
 	}
 
+	protected void onResume()
+	{
+		super.onResume();
+		Intent broadcastIntent = new Intent();
+		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+		broadcastIntent.putExtra("requestStatus", true);
+		sendBroadcast(broadcastIntent);
+	}
+	
 	void StartLocation()
 	{	
-		if (receiver == null)
-		{
-			CheckBox checkConnect = (CheckBox)findViewById(R.id.checkBoxConnect);
-			mBluetoothService.putExtra("CONNECT", checkConnect.isChecked());
-			mBluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));
-			
-			IntentFilter filter = new IntentFilter(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
-			filter.addCategory(Intent.CATEGORY_DEFAULT);
-			receiver = new ResponseReceiver();
-			registerReceiver(receiver, filter);
-		}
+		CheckBox checkConnect = (CheckBox)findViewById(R.id.checkBoxConnect);
+		mBluetoothService.putExtra("CONNECT", checkConnect.isChecked());
+		mBluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));			
+
 		startService(mBluetoothService);
+	}
+	
+	protected void onDestroy()
+	{
+		unregisterReceiver(receiver);
+		super.onDestroy();
 	}
 	
 	void StopLocation()
 	{
-		if (receiver != null)
-		{
-			unregisterReceiver(receiver);
-			receiver = null;
-		}
 		stopService(mBluetoothService);
 	}
 	

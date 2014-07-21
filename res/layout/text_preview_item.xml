@@ -4,7 +4,7 @@
     android:layout_height="match_parent" >
 
     <ImageView
-        android:id="@+id/imageView1"
+        android:id="@+id/imageViewIcon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
@@ -15,10 +15,9 @@
         android:id="@+id/textViewBody"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/imageView1"
-        android:ems="10" 
+        android:layout_toRightOf="@+id/imageViewIcon"
+        android:ems="10"
         android:padding="2dp"
         android:text="Body"
         android:textSize="15sp" />
@@ -33,6 +32,15 @@
         android:ems="10"
         android:padding="2dp"
         android:text="Footer"
-        android:textSize="13sp" />
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/textViewDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/textViewBody"
+        android:text="Date" />
 
 </RelativeLayout>

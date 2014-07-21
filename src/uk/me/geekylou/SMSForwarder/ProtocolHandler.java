@@ -189,8 +189,7 @@ public class ProtocolHandler
     		in.read(messageBytes);
     		
     		handleSMSMessage(type,id,new String(senderBytes,"UTF-8"),new String(messageBytes,"UTF-8"));
-    		
-    		
+    		break;
     	default:
     		Log.i("ProtocolHandler", "unknown packet ID " + payload[0]);
     		
@@ -254,7 +253,8 @@ public class ProtocolHandler
 			break;
     	case SMS_MESSAGE_TYPE_SEND:
     		/* Sender is destination no. in the case of a send type.*/
-    		SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
+    		/* [NOTE] disabled sending of text messages. */
+    		//SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
     		break;
     	case SMS_MESSAGE_TYPE_REQUEST:
 			{

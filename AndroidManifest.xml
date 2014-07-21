@@ -37,6 +37,7 @@
             </intent-filter>
         </service>
         <service android:name="TCPPacketHandler"></service>
+        <activity android:name="InboxActivity"></activity>
         <activity android:name="BluetoothChooserActivity"></activity>
     </application>
 
