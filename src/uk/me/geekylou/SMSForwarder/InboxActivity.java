@@ -109,18 +109,28 @@ public class InboxActivity extends Activity {
      
         setContentView(R.layout.bluetooth_chooser);
 
+        mProtocolHandler = new InboxProtocolHandler(this,0x104);
         mBluetoothDeviceArrayAdapter = new ImageViewAdapter(this, R.layout.text_preview_item);
-		        
-		mProtocolHandler  = new InboxProtocolHandler(this,0x104);
-    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "",0);
-        
+		
+        prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+
+        /* Start listening for replies before doing anything else.*/
 		IntentFilter filter = new IntentFilter(InterfaceBaseService.PACKET_RECEIVED);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
+        		
+        /* Start service before sending request for inbox.*/
+        Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
+		bluetoothService.putExtra("CONNECT", true);
+		bluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));			
+
+    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "",0);
+	
+ 		startService(bluetoothService);
 		
 		mInboxEntriesView = (ListView) findViewById(R.id.listView1);
-        mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);
+        mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);        
     }
     
     protected void onDestroy()

@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 
+import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
@@ -16,11 +17,13 @@ import android.widget.Toast;
 public class BluetoothInterfaceService extends InterfaceBaseService
 {
 	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
-	BluetoothAdapter mBluetoothAdapter;	
+	BluetoothAdapter mBluetoothAdapter;
+	private BluetoothSocket mSocket;	
 		
 	public BluetoothInterfaceService()
 	{
-		mSocketThread = new BluetoothSocketThread();
+		mServerSocketThread = new BluetoothSocketThread();
+		mSocketThread       = new BluetoothSocketThread();
 	}
 	
     @Override
@@ -29,7 +32,7 @@ public class BluetoothInterfaceService extends InterfaceBaseService
 
         Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
         
-		if(mSocketThread.running == SocketThread.THREAD_STOPPED)
+		if(mServerSocketThread.running == SocketThread.THREAD_STOPPED)
 		{
         	mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     		if (mBluetoothAdapter == null) {
@@ -45,19 +48,18 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     	        Toast.makeText(this, "Error Bluetooth not enabled!", Toast.LENGTH_SHORT).show();
     	        return START_STICKY;
     		}
-    		
-    		initListeners();
+
+    		initListeners(this,intent);
     		
     		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
             if (intent.getBooleanExtra("CONNECT", false))
             {
 	        	try 
 	        	{
-	        		BluetoothSocket Socket = mBluetoothAdapter.getRemoteDevice(intent.getStringExtra("BT_ID")).createRfcommSocketToServiceRecord(uuid);
+	        		mSocket = mBluetoothAdapter.getRemoteDevice(intent.getStringExtra("BT_ID")).createRfcommSocketToServiceRecord(uuid);
 	
-	        		Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
-	        		
-	        		((BluetoothSocketThread)mSocketThread).startRunning(Socket);
+	        		//Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
+	        		//((BluetoothSocketThread)mSocketThread).startRunning(Socket);
 	        		
 				} 
 	        	catch (IOException e) 
@@ -69,17 +71,27 @@ public class BluetoothInterfaceService extends InterfaceBaseService
 					e.printStackTrace();
 				}
             }
-            else
-            {
-            	((BluetoothSocketThread)mSocketThread).startRunning(null);
-            }    		
-		}				
-        
+            
+        	((BluetoothSocketThread)mServerSocketThread).startRunning(null);
+        	
+        	initListeners(this,intent);
+ 		}				
+		/* We can send packet data when we start the intent.  This makes things like request inbox easier.*/
+		mReceiver.onReceive(this,intent);
+
     	// We want this service to continue running until it is explicitly
         // stopped, so return sticky.
         return START_STICKY;
     }
-		
+	
+    void ConnectIntentHandler(Context context, Intent intent,boolean autoConnect)
+    {
+        if (intent.getBooleanExtra("forceConnect", false) || autoConnect)
+        {
+        	((BluetoothSocketThread)mSocketThread).startRunning(mSocket);
+        }
+    }
+    
     class BluetoothSocketThread extends SocketThread
     {
     	

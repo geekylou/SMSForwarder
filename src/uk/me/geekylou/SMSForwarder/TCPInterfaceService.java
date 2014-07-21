@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 import android.widget.Toast;
@@ -31,7 +32,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
         
 		if(mSocketThread.running == SocketThread.THREAD_STOPPED)
 		{  		
-    		initListeners();
+    		initListeners(this,intent);
     		
     		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
             if (intent.getBooleanExtra("CONNECT", false))
@@ -124,4 +125,10 @@ class TCPIPInterfaceService extends InterfaceBaseService
     		}
     	}
     }
+
+	@Override
+	void ConnectIntentHandler(Context context, Intent intent,boolean autoConnect) {
+		// TODO Auto-generated method stub
+		
+	}
 }

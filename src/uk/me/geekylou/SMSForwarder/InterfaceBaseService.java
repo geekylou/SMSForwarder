@@ -4,6 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import org.apache.http.util.ByteArrayBuffer;
@@ -37,7 +39,7 @@ abstract class InterfaceBaseService extends Service
 	public static final String PACKET_RECEIVED = "uk.me.geekylou.GPSTest.PACKET_RECEIVED";
 	public static final String SERVICE_STATUS_UPDATE = "uk.me.geekylou.GPSTest.SERVICE_STATUS_UPDATE";
 	
-	void initListeners()
+	void initListeners(Context context, Intent intent)
 	{
 		// Register intents for both IPC from other Activity to activity on other host and system events
 		// we want to notify the other host of.
@@ -76,6 +78,11 @@ abstract class InterfaceBaseService extends Service
 
 	}
 	
+	class PacketQueueItem
+	{
+		byte packetBuffer[];
+	}
+	
     abstract class SocketThread extends Thread
     {
     	// We use the running variable not only to stop the thread but also so we know when it's safe to restart it.
@@ -91,6 +98,7 @@ abstract class InterfaceBaseService extends Service
     	DataOutputStream out = null;
     	DataInputStream  in;
     	ProtocolHandler  handler = new ProtocolHandler(InterfaceBaseService.this,0x104);; 
+    	LinkedList<PacketQueueItem> mPacketQueue = new LinkedList<PacketQueueItem>();
     	
     	int running = 0; // Set to true before starting the thread and false when stopping the thread.
     	boolean isOpen = false,server=false;  // True when it is safe to write to the socket.
@@ -164,6 +172,24 @@ abstract class InterfaceBaseService extends Service
     				break;
     			}
     			
+    			/* Send out anything currently queued before doing anything else.
+    			 * This is safe as we don't wait for anything.
+    			 */
+    			PacketQueueItem item;
+    			synchronized(mPacketQueue)
+    			{
+    				try {
+						while((item = mPacketQueue.removeFirst()) != null)
+						{
+							Log.i("BluetoothInterfaceService", "in.write ");
+							item = mPacketQueue.removeFirst();
+							out.write(item.packetBuffer);
+						}
+    				} catch(NoSuchElementException e) {
+    					e.printStackTrace();
+    				}
+    				
+	   			}
     			if (length > 0 && length < 65536)
     			{
     				byte[] payload = new byte[length + 1];
@@ -222,6 +248,31 @@ abstract class InterfaceBaseService extends Service
     			running = THREAD_RUNNING;
     			start();
     		}
+    	}
+    	
+    	boolean sendPacket(byte[] packetData,boolean buffer)
+    	{
+    		if (mSocketThread.isOpen && packetData != null)
+			{
+				try {
+					mSocketThread.out.write(packetData);
+					return true;
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+    		else if (buffer && packetData != null)
+    		{
+    			synchronized(mPacketQueue)
+    			{
+    			PacketQueueItem item = new PacketQueueItem();
+    			item.packetBuffer = packetData;
+    			mPacketQueue.addLast(item);
+    			Log.i("BluetoothInterfaceService", "add to queue ");
+    			}
+    		}
+			return false;
     	}
     }
 
@@ -289,6 +340,8 @@ abstract class InterfaceBaseService extends Service
 	   	}
 }    
     
+	abstract void ConnectIntentHandler(Context context, Intent intent,boolean autoConnect);
+	
 	class ResponseReceiver extends BroadcastReceiver 
 	{	
 		ResponseReceiver()
@@ -298,6 +351,8 @@ abstract class InterfaceBaseService extends Service
 	   @Override
 	    public void onReceive(Context context, Intent intent) 
 	   	{
+		   ConnectIntentHandler(context,intent,false);
+		   
 		   if (intent.getBooleanExtra("requestStatus", false))
 		   {
 				Intent broadcastIntent = new Intent();
@@ -308,15 +363,17 @@ abstract class InterfaceBaseService extends Service
 		   }
     	   if (mSocketThread.isOpen)
 			{
-				try {
-					byte packetData[] = intent.getByteArrayExtra ("packetData");
-					if(packetData != null)
-						mSocketThread.out.write(packetData);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}	
+				mSocketThread.sendPacket(intent.getByteArrayExtra ("packetData"),false);
+			} 
+    	   else if(mServerSocketThread.isOpen)
+			{
+				mServerSocketThread.sendPacket(intent.getByteArrayExtra ("packetData"),false);
+			}
+    	   else
+    	   {
+    		   mSocketThread.sendPacket(intent.getByteArrayExtra ("packetData"),true);    		   
+    		   ConnectIntentHandler(context,intent,true);
+    	   }
 	   	}
 	}
 	

@@ -137,18 +137,24 @@ public class ProtocolHandler
 	
 	void sendSMSMessage(Context ctx, int destination,int type,int id,String sender, String payload,long date)
 	{
+		Intent intent  = populateSMSMessageIntent(new Intent(), destination, type, id, sender, payload, date);
+		if (intent != null) ctx.sendBroadcast(intent);
+	}
+	
+	Intent populateSMSMessageIntent(Intent broadcastIntent,int destination,int type,int id,String sender, String payload,long date)
+	{
 		try {			
 			byte[] buf = CreatePacket(sourceAddress,destination,CreateSMSPacket(type,id,sender,payload,date));
 			
-			Intent broadcastIntent = new Intent();
 			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
 			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 			broadcastIntent.putExtra("packetData", buf);
-			ctx.sendBroadcast(broadcastIntent);
-			
+					
+			return broadcastIntent;
 		} catch(IOException e) {    	
 			Log.e("ProtocolHandler", "Unexpected io exception "+e.toString());
 		};
+		return null;
 	}
 	
     void sendButtonPress(Context ctx, int destination,int buttonID,int pageNo)
