@@ -5,6 +5,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.apache.http.util.ByteArrayBuffer;
+
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
@@ -168,13 +170,15 @@ abstract class InterfaceBaseService extends Service
     				Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
     				
     				handler.decodePacket(header, payload);
+    				
+        			// processing done here¦.
+        			Intent broadcastIntent = new Intent();
+        			broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
+        			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+        			broadcastIntent.putExtra("header", header);
+        			broadcastIntent.putExtra("payload", payload);
+        			sendBroadcast(broadcastIntent);
     			}
-    			// processing done here¦.
-    			Intent broadcastIntent = new Intent();
-    			broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
-    			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-    			broadcastIntent.putExtra("SOCK", new String(header));
-    			sendBroadcast(broadcastIntent);
     		}
     		synchronized(this) 
     		{

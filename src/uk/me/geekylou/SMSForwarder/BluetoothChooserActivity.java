@@ -46,7 +46,7 @@ import android.view.LayoutInflater;
 
 public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
 	private ListView mTimeLineView;
-	private ArrayAdapter<Entry> mBluetoothDeviceArrayAdapter;
+	private ArrayAdapter<BluetoothChooserEntry> mBluetoothDeviceArrayAdapter;
 	static final int REQUEST_NEW_ENTRY = 1000;
 	private BluetoothAdapter mBluetoothAdapter;
 	private SharedPreferences prefs;
@@ -63,7 +63,7 @@ public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
         
         prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
         
-        mBluetoothDeviceArrayAdapter = new ArrayAdapter<Entry>(this, R.layout.itemb);
+        mBluetoothDeviceArrayAdapter = new ArrayAdapter<BluetoothChooserEntry>(this, R.layout.itemb);
         
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 		if (mBluetoothAdapter == null) {
@@ -83,7 +83,7 @@ public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
         // Loop through paired devices
         for (BluetoothDevice device : pairedDevices) {
         	// Add the name and address to an array adapter to show in a ListView
-        	Entry entry = new Entry();
+        	BluetoothChooserEntry entry = new BluetoothChooserEntry();
         	entry.device = device;
         	
             mBluetoothDeviceArrayAdapter.add(entry);

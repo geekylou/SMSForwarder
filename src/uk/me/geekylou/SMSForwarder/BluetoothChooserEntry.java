@@ -2,7 +2,7 @@ package uk.me.geekylou.SMSForwarder;
 
 import android.bluetooth.BluetoothDevice;
 
-public class Entry {
+public class BluetoothChooserEntry {
 	BluetoothDevice device;
 	
 	public String toString()
