@@ -89,6 +89,7 @@ public class BluetoothInterfaceService extends InterfaceBaseService
         if (intent.getBooleanExtra("forceConnect", false) || autoConnect)
         {
         	((BluetoothSocketThread)mSocketThread).startRunning(mSocket);
+        	//Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
         }
     }
     

@@ -158,6 +158,28 @@ abstract class InterfaceBaseService extends Service
     		{
     		isOpen = true;
     		}
+    		
+			/* Send out anything currently queued before doing anything else.
+			 * This is safe to do in the sender thread as we don't wait for anything.
+			 */
+			PacketQueueItem item;
+			synchronized(mPacketQueue)
+			{
+				try {
+					while(!mPacketQueue.isEmpty())
+					{
+						Log.i("BluetoothInterfaceService", "in.write "+server);
+						item = mPacketQueue.removeFirst();
+						Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffer);
+						
+						out.write(item.packetBuffer);
+					}
+				} catch(NoSuchElementException e) {
+					e.printStackTrace();
+				}
+				
+   			}
+
     		while(running == THREAD_RUNNING)
     		{
     			int retval = 0;
@@ -172,24 +194,6 @@ abstract class InterfaceBaseService extends Service
     				break;
     			}
     			
-    			/* Send out anything currently queued before doing anything else.
-    			 * This is safe as we don't wait for anything.
-    			 */
-    			PacketQueueItem item;
-    			synchronized(mPacketQueue)
-    			{
-    				try {
-						while((item = mPacketQueue.removeFirst()) != null)
-						{
-							Log.i("BluetoothInterfaceService", "in.write ");
-							item = mPacketQueue.removeFirst();
-							out.write(item.packetBuffer);
-						}
-    				} catch(NoSuchElementException e) {
-    					e.printStackTrace();
-    				}
-    				
-	   			}
     			if (length > 0 && length < 65536)
     			{
     				byte[] payload = new byte[length + 1];
