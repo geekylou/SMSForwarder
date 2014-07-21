@@ -1,5 +1,7 @@
 package uk.me.geekylou.SMSForwarder;
 
+import java.util.Date;
+
 import android.graphics.Bitmap;
 import android.net.Uri;
 
@@ -7,7 +9,7 @@ public class InboxEntry {
 	public String sender,message;
 	public Bitmap bitmap;
 	public int    id;
-	public Uri uri;
+	public Date   date;
 	
 	public String toString()
 	{

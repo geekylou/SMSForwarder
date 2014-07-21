@@ -41,6 +41,8 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
         android:layout_toRightOf="@+id/textViewBody"
-        android:text="Date" />
+        android:text="Date"
+        android:gravity="right"
+android:textAlignment="gravity" />
 
 </RelativeLayout>

@@ -3,6 +3,7 @@ package uk.me.geekylou.SMSForwarder;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Date;
 import java.util.UUID;
 
 import org.apache.http.util.ByteArrayBuffer;
@@ -28,6 +29,8 @@ abstract class InterfaceBaseService extends Service
 	SMSResponseReceiver mSMSReceiver;
 	String status="";
 	
+
+	SocketThread  mServerSocketThread;
 	SocketThread  mSocketThread;
 	
 	public static final String SEND_PACKET     = "uk.me.geekylou.GPSTest.SEND_PACKET";
@@ -55,7 +58,8 @@ abstract class InterfaceBaseService extends Service
         // Tell the user we stopped.
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show();
 
-        mSocketThread.stopRunning();
+        mServerSocketThread.stopRunning();
+        if (mSocketThread != null) mSocketThread.stopRunning();
 		unregisterReceiver(mReceiver);
 		unregisterReceiver(mSMSReceiver);
     }
@@ -268,7 +272,8 @@ abstract class InterfaceBaseService extends Service
 											  ProtocolHandler.CreateSMSPacket(ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,
 											  0, /* id not used on this type of request. */
 											  senderNum, 
-											  message));
+											  message,
+											  new Date().getTime()));
 	       		            	mSocketThread.out.write(buf);
 	       					} catch (IOException e) {
 	       						// TODO Auto-generated catch block

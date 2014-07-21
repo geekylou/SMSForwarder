@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Date;
 
 import uk.me.geekylou.SMSForwarder.R;
 
@@ -99,7 +100,7 @@ public class ProtocolHandler
 		return outStr.toByteArray();
 	}
 
-	static byte[] CreateSMSPacket(int type,int id,String sender,String payload) throws IOException
+	static byte[] CreateSMSPacket(int type,int id,String sender,String payload,long date) throws IOException
 	{
 		ByteArrayOutputStream outStr = new ByteArrayOutputStream(payload.length()+sender.length()+64);
 		DataOutputStream      dataOut = new DataOutputStream(outStr);
@@ -116,6 +117,7 @@ public class ProtocolHandler
 		dataOut.write(senderByteArr,0,senderByteBuffer.limit());
 		dataOut.writeShort(payloadByteBuffer.limit());
 		dataOut.write(payloadByteArr,0,payloadByteBuffer.limit());
+		dataOut.writeLong(date);
 		
 		return outStr.toByteArray();
 	}
@@ -133,10 +135,10 @@ public class ProtocolHandler
 		return outStr.toByteArray();
 	}
 	
-	void sendSMSMessage(Context ctx, int destination,int type,int id,String sender, String payload)
+	void sendSMSMessage(Context ctx, int destination,int type,int id,String sender, String payload,long date)
 	{
 		try {			
-			byte[] buf = CreatePacket(sourceAddress,destination,CreateSMSPacket(type,id,sender,payload));
+			byte[] buf = CreatePacket(sourceAddress,destination,CreateSMSPacket(type,id,sender,payload,date));
 			
 			Intent broadcastIntent = new Intent();
 			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
@@ -188,7 +190,9 @@ public class ProtocolHandler
     		
     		in.read(messageBytes);
     		
-    		handleSMSMessage(type,id,new String(senderBytes,"UTF-8"),new String(messageBytes,"UTF-8"));
+    		Date date = new Date(in.readLong());
+    		
+    		handleSMSMessage(type,id,new String(senderBytes,"UTF-8"),new String(messageBytes,"UTF-8"),date);
     		break;
     	default:
     		Log.i("ProtocolHandler", "unknown packet ID " + payload[0]);
@@ -203,7 +207,7 @@ public class ProtocolHandler
 		}
     }
     
-    void handleSMSMessage(int type,int id,String sender, String message) 
+    void handleSMSMessage(int type,int id,String sender, String message, Date date) 
     {
     	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
     
@@ -266,7 +270,8 @@ public class ProtocolHandler
 					sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE,
 								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
 								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
-								cursor.getString(cursor.getColumnIndexOrThrow("body")));
+								cursor.getString(cursor.getColumnIndexOrThrow("body")),
+								cursor.getLong(cursor.getColumnIndexOrThrow("date")));
 				}while(cursor.moveToNext());
 				
 			}

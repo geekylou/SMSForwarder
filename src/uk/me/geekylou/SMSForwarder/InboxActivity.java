@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Date;
 import java.util.Set;
 
 import org.json.JSONException;
@@ -74,10 +75,12 @@ class ImageViewAdapter extends ArrayAdapter<InboxEntry>
         
         TextView textBody=(TextView)vi.findViewById(R.id.textViewBody);
         TextView textFooter=(TextView)vi.findViewById(R.id.textViewFooter);
+        TextView textDate=(TextView)vi.findViewById(R.id.textViewDate);
         ImageView imageViewIcon = (ImageView)vi.findViewById(R.id.imageViewIcon);
         
         textBody.setText(entry.sender);
         textFooter.setText(entry.message);
+        textDate.setText(entry.date.toLocaleString());
         
 //        if (entry.bitmap != null)
         	imageViewIcon.setImageBitmap(entry.bitmap);
@@ -109,7 +112,7 @@ public class InboxActivity extends Activity {
         mBluetoothDeviceArrayAdapter = new ImageViewAdapter(this, R.layout.text_preview_item);
 		        
 		mProtocolHandler  = new InboxProtocolHandler(this,0x104);
-    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "");
+    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "",0);
         
 		IntentFilter filter = new IntentFilter(InterfaceBaseService.PACKET_RECEIVED);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
@@ -132,7 +135,7 @@ public class InboxActivity extends Activity {
 			// TODO Auto-generated constructor stub
 		}
     	
-	    void handleSMSMessage(int type,int id,String sender, String message) 
+	    void handleSMSMessage(int type,int id,String sender, String message,Date date) 
 	    {
 	    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
 	    
@@ -156,9 +159,7 @@ public class InboxActivity extends Activity {
 	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
 	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
 	        		
-	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
-	            	
-	            	entry.uri = photoUri;
+	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);	            	
 	        	}
 
 	        	if (entry.bitmap == null)
@@ -167,6 +168,7 @@ public class InboxActivity extends Activity {
             	entry.sender  = sender;
 	        	entry.message = message;
 	        	entry.id      = id;
+	        	entry.date    = date;
 	        	
 	            mBluetoothDeviceArrayAdapter.add(entry);
 
