@@ -37,11 +37,16 @@ public class ProtocolHandler
 	static final byte PACKET_ID_BUTTON_PRESS      = (byte) 0x90;
 	static final byte PACKET_ID_SETLED_INTENSITY8 = (byte) 0x0C;
 	
-	static final int SMS_MESSAGE_TYPE_SEND		   = 0x1; /* a message to be sent by the destination device. */
-	static final int SMS_MESSAGE_TYPE_NOTIFICATION = 0x2; /* message just received by the source to be displayed by the destination.*/
-	static final int SMS_MESSAGE_TYPE_REQUEST	   = 0x3; /* Request for message ID = id.*/
-	static final int SMS_MESSAGE_TYPE_RESPONSE	   = 0x4; /* Response to a request for message ID.*/
-			
+	static final int SMS_MESSAGE_TYPE_SEND		      = 0x1; /* a message to be sent by the destination device. */
+	static final int SMS_MESSAGE_TYPE_NOTIFICATION    = 0x2; /* message just received by the source to be displayed by the destination.*/
+	static final int SMS_MESSAGE_TYPE_REQUEST	      = 0x3; /* Request for all messages in inbox.*/
+	static final int SMS_MESSAGE_TYPE_RESPONSE	      = 0x4; /* Response to a request for message.*/
+	static final int SMS_MESSAGE_TYPE_REQUEST_SENT    = 0x5; /* Request for messages in sent*/
+	static final int SMS_MESSAGE_TYPE_RESPONSE_SENT   = 0x6; /* Response to a request for message.*/
+	static final int SMS_MESSAGE_TYPE_DONE            = 0x7; /* message ID = REQUEST_TYPE_* has finished.*/
+
+	static final int SMS_MESSAGE_TYPE_PHONE_CALL      = 0x8; /* voice call uses the same mechanism as SMS messages.*/
+
 	ProtocolHandler(Context ctx,int sourceAddress)
 	{
 		this.sourceAddress  = sourceAddress;
@@ -222,7 +227,8 @@ public class ProtocolHandler
     	switch(type)
     	{
     	case SMS_MESSAGE_TYPE_SEND:
-    	case SMS_MESSAGE_TYPE_NOTIFICATION:
+    	case SMS_MESSAGE_TYPE_PHONE_CALL:
+    	case SMS_MESSAGE_TYPE_NOTIFICATION:	
 	    	// define the columns to return for getting the name of the sender.
 	    	String[] projection = new String[] {
 	    	        ContactsContract.PhoneLookup.DISPLAY_NAME,
@@ -240,20 +246,31 @@ public class ProtocolHandler
 	
 	    	if (cursor.moveToFirst()) 
 	    	{
-	    	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+	    		Bitmap bitmap;
 	    		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
 	    		
-	    	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
-	    		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
-	    		
-	        	Bitmap bitmap = BitmapFactory.decodeStream(bitmapStream);
+	    		do{	
+	        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+
+	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+	        		
+	            	bitmap = BitmapFactory.decodeStream(bitmapStream);
+
+				}while(cursor.moveToNext() && bitmap == null);
 	        	
 	        	if (bitmap != null)
 	        		mBuilder.setLargeIcon(bitmap);
 	    	}
 	    	
-	    	mBuilder.setContentTitle(sender);
-			
+	    	if (type == SMS_MESSAGE_TYPE_PHONE_CALL)
+	    	{
+	    		mBuilder.setContentTitle("Call from");
+	    		mBuilder.setContentText(sender);
+	    	}
+	    	else
+	    		mBuilder.setContentTitle(sender);
+	    		
 			// Sets an ID for the notification
 			int mNotificationId = 001;
 			// Gets an instance of the NotificationManager service
@@ -290,7 +307,35 @@ public class ProtocolHandler
 								cursor.getString(cursor.getColumnIndexOrThrow("body")),
 								cursor.getLong(cursor.getColumnIndexOrThrow("date")));
 				}while(cursor.moveToNext());
+
+				sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST,"","",0);				
+			}
+			break;
+    	case SMS_MESSAGE_TYPE_REQUEST_SENT:
+			{
+				Log.i("ProtocolHandler", "handleSMSMessage - SMS_MESSAGE_TYPE_REQUEST_SENT\n");
+				String search[] = {sender};
+				String msgData = "";
+				if (!sender.equals(""))
+				{
+					cursor = ctx.getContentResolver().query(Uri.parse("content://sms/sent"), null, "address=?", search, null);
+				}
+				else
+				{
+					cursor = ctx.getContentResolver().query(Uri.parse("content://sms/sent"), null, null, null, null);					
+				}
 				
+				if (!cursor.moveToFirst())
+					break;
+				do{	
+					sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE_SENT,
+								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
+								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
+								cursor.getString(cursor.getColumnIndexOrThrow("body")),
+								cursor.getLong(cursor.getColumnIndexOrThrow("date")));
+				}while(cursor.moveToNext());
+				
+				sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST_SENT,"","",0);
 			}
     	}
     }

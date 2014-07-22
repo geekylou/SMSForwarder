@@ -9,12 +9,12 @@ import java.net.Socket;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
-import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
 
-class TCPIPInterfaceService extends InterfaceBaseService
+public class TCPIPInterfaceService extends InterfaceBaseService
 {
 	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
 	BluetoothAdapter mBluetoothAdapter;	
@@ -28,7 +28,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
 
-        Toast.makeText(this, "Service Started" + intent.getStringExtra("PEER_ADDRESS") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "IP Service Started", Toast.LENGTH_SHORT).show();
         
 		if(mSocketThread.running == SocketThread.THREAD_STOPPED)
 		{  		
@@ -37,9 +37,15 @@ class TCPIPInterfaceService extends InterfaceBaseService
     		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
             if (intent.getBooleanExtra("CONNECT", false))
             {
+                SharedPreferences prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+        		String bluetoothID = prefs.getString("PEER_IP_ADDRESS", null);
+
 	        	try 
 	        	{
-	        		InetAddress peer = InetAddress.getByName(intent.getStringExtra("PEER_ADDRESS"));
+	        		InetAddress peer = InetAddress.getByName(prefs.getString("PEER_IP_ADDRESS", null));
+
+	                Toast.makeText(this, "Connect to"+prefs.getString("PEER_IP_ADDRESS", null), Toast.LENGTH_SHORT).show();
+
 	        		
 	        		((TCPIPSocketThread)mSocketThread).startRunning(peer,intent.getIntExtra("PEER_PORT", 9100));
 	        		
@@ -72,23 +78,24 @@ class TCPIPInterfaceService extends InterfaceBaseService
     	InetAddress  mPeerAddress;
     	int			 mPort;
     	    
-    	void initServerConnection()
-    	{
+    	void initServerConnection() throws IOException
+    	{    		
+			mBluetoothSocket = new ServerSocket(9100);
     	}
     	
     	void acceptConnection(boolean server) throws IOException
     	{
 			if (server)
 			{
-				statusUpdate("Disconnected.  Waiting for connection.");
+				statusUpdate("Disconnected.  Waiting for connection.", 0);
 				mSocket = mBluetoothSocket.accept();
 			}
 			else
 			{
 				mSocket = new Socket(mPeerAddress,mPort);
-				statusUpdate("Connecting.");
+				statusUpdate("Connecting.", 0);
 			}
-			statusUpdate("Connected.");
+			statusUpdate("Connected.", 0);
 			
 			out = new DataOutputStream(mSocket.getOutputStream());
 			in  = new DataInputStream(mSocket.getInputStream());
@@ -127,7 +134,7 @@ class TCPIPInterfaceService extends InterfaceBaseService
     }
 
 	@Override
-	void ConnectIntentHandler(Context context, Intent intent,boolean autoConnect) {
+	void startClientConnection() {
 		// TODO Auto-generated method stub
 		
 	}

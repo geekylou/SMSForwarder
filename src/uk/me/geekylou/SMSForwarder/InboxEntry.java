@@ -10,6 +10,7 @@ public class InboxEntry {
 	public Bitmap bitmap;
 	public int    id;
 	public Date   date;
+	public int type;
 	
 	public String toString()
 	{

@@ -1,56 +1,31 @@
 package uk.me.geekylou.SMSForwarder;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+
 import java.io.InputStream;
 import java.util.Date;
-import java.util.Set;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.HashMap;
+import java.util.Iterator;
 
 import uk.me.geekylou.SMSForwarder.R;
-import uk.me.geekylou.SMSForwarder.MainActivity.ResponseReceiver;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.provider.MediaStore;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.NotificationCompat;
-import android.util.Log;
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.AdapterView.AdapterContextMenuInfo;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -79,13 +54,19 @@ class ImageViewAdapter extends ArrayAdapter<InboxEntry>
         ImageView imageViewIcon = (ImageView)vi.findViewById(R.id.imageViewIcon);
         
         textBody.setText(entry.sender);
-        textFooter.setText(entry.message);
+        if (entry.type == ProtocolHandler.SMS_MESSAGE_TYPE_RESPONSE_SENT)
+        {
+            textFooter.setText("Me:"+entry.message);        	
+        }
+        else
+        {
+            textFooter.setText(entry.message);
+        }
+        	
         textDate.setText(entry.date.toLocaleString());
         
-//        if (entry.bitmap != null)
-        	imageViewIcon.setImageBitmap(entry.bitmap);
+       	imageViewIcon.setImageBitmap(entry.bitmap);
 
-        //vi.setBackgroundColor(Color.GREEN);
         return vi;
 	}
 }
@@ -98,9 +79,15 @@ public class InboxActivity extends Activity {
 	private SharedPreferences prefs;
 	InboxProtocolHandler  mProtocolHandler;
 	private ResponseReceiver receiver;
+	StatusReceiver mStatusReceiver;
+	String search;
+	
 	static String[] mProjections = new String[] {
 	        ContactsContract.PhoneLookup.DISPLAY_NAME,
-	        ContactsContract.PhoneLookup._ID};;
+	        ContactsContract.PhoneLookup._ID};
+	
+	boolean threadView=true;
+	private TextView mStatusTextView;
 	
     /** Called when the activity is first created. */
     @Override
@@ -120,29 +107,50 @@ public class InboxActivity extends Activity {
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
-        		
-        /* Start service before sending request for inbox.*/
+
+        /* Start listening for status doing anything else.*/
+		filter = new IntentFilter(InterfaceBaseService.SERVICE_STATUS_UPDATE);
+		filter.addCategory(Intent.CATEGORY_DEFAULT);
+    	mStatusReceiver = new StatusReceiver();
+    	registerReceiver(mStatusReceiver, filter);
+    	
+        /* Start service with a request for the inbox on the peer.*/
         Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
-		bluetoothService.putExtra("CONNECT", true);
-		bluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));			
 		
-		String search = intent.getStringExtra("search");
+		search = intent.getStringExtra("search");
 		if(search == null) search="";
     	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
+    	/* cludge to make TCPIP Service work.*/
+    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
 	
  		startService(bluetoothService);
 		
 		mInboxEntriesView = (ListView) findViewById(R.id.listView1);
-        mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);        
+        mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);
+        
+        mStatusTextView = (TextView) findViewById(R.id.textViewStatus);
     }
+    
+    /* This sends a request to the service to send us the current connection status.*/
+    protected void onResume()
+	{
+		super.onResume();
+		Intent broadcastIntent = new Intent();
+		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+		broadcastIntent.putExtra("requestStatus", true);
+		sendBroadcast(broadcastIntent);
+	}
     
     protected void onDestroy()
     {
+    	unregisterReceiver(mStatusReceiver);
     	unregisterReceiver(receiver);
     	super.onDestroy();
     }
     class InboxProtocolHandler extends ProtocolHandler {
-
+    	HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();
+    	
 		InboxProtocolHandler(Context ctx, int sourceAddress) {
 			super(ctx, sourceAddress);
 			// TODO Auto-generated constructor stub
@@ -153,10 +161,14 @@ public class InboxActivity extends Activity {
 	    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
 	    
 	    	Cursor cursor;
+	    	boolean addToTop = false; // Whether to add to the top of the screen or not.  Also affects if it is cached or not. */
 	    	
 	    	switch(type)
 	    	{
+	    	case SMS_MESSAGE_TYPE_NOTIFICATION:
+	    		addToTop = true;
 	    	case SMS_MESSAGE_TYPE_RESPONSE:
+	    	case SMS_MESSAGE_TYPE_RESPONSE_SENT:
 	    		InboxEntry entry = new InboxEntry();
 	    		
 	        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
@@ -166,28 +178,80 @@ public class InboxActivity extends Activity {
 
 	        	if (cursor.moveToFirst()) 
 	        	{
-	        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
 	        		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
-	        		
-	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
-	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
-	        		
-	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);	            	
+	        			            	
+	            	do{	
+		        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+
+		        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+		        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+		        		
+		            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
+
+					}while(cursor.moveToNext() && entry.bitmap == null);
 	        	}
+	    		cursor.close();
+	    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+	        	 * message.*/
+	        	if (threadView)
+        		{
+        			if (mHashmap.containsKey(sender))
+        			{
+        				InboxEntry entryToCheck = mHashmap.get(sender);
+        				
+        				if (entryToCheck.date.getTime() < date.getTime())
+        					entry = entryToCheck;
+            			else
+            				break;        				
+        			}
+        		}
 
 	        	if (entry.bitmap == null)
             		entry.bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
 
-            	entry.sender  = sender;
+	        	entry.type    = type;
+	        	entry.sender = sender;
 	        	entry.message = message;
 	        	entry.id      = id;
 	        	entry.date    = date;
 	        	
-	            mBluetoothDeviceArrayAdapter.add(entry);
+	        	if (addToTop)
+	        	{
+	        		if (threadView)
+		        		mBluetoothDeviceArrayAdapter.remove(entry);	        		
 
+	        		mBluetoothDeviceArrayAdapter.insert(entry, 0);	        		
+	        	}
+	        	else
+	        	{
+	        		if (threadView)
+	        		{
+	        			if (!mHashmap.containsKey(sender))
+	        			{
+	        				mHashmap.put(sender, entry);
+	        				mBluetoothDeviceArrayAdapter.add(entry);
+	        			}
+	        			else
+	        			{
+	        				mBluetoothDeviceArrayAdapter.notifyDataSetChanged();
+	        			}
+	        		}
+	        		else if (!addEntryToCache(entry))
+	        			mBluetoothDeviceArrayAdapter.add(entry);
+	        	}
 	            cursor.close();
+	            break;
+	    	case SMS_MESSAGE_TYPE_DONE:
+	    		if(id == SMS_MESSAGE_TYPE_REQUEST)
+	    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,search,"",0);
 	    	}
     	}
+
+	    
+		private boolean addEntryToCache(InboxEntry entry) {
+			// TODO Auto-generated method stub
+			return false;
+		}
     }
     class ResponseReceiver extends BroadcastReceiver {
 		ResponseReceiver()
@@ -197,7 +261,21 @@ public class InboxActivity extends Activity {
 	   @Override
 	    public void onReceive(Context context, Intent intent) 
 	    {
+		   String status = intent.getStringExtra("STATUS");
+	       if (status != null) mStatusTextView.setText(status);
 		   mProtocolHandler.decodePacket(intent.getByteArrayExtra("header"),intent.getByteArrayExtra("payload"));
 	    }
 	}
+    class StatusReceiver extends BroadcastReceiver {
+ 		StatusReceiver()
+ 		{
+ 			super();
+ 		}
+ 	   @Override
+ 	    public void onReceive(Context context, Intent intent) 
+ 	    {
+ 		   String status = intent.getStringExtra("STATUS");
+ 	       if (status != null) mStatusTextView.setText("Status:"+status);
+ 	    }
+ 	}
 }

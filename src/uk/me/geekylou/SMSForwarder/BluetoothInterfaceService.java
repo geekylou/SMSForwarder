@@ -9,14 +9,16 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 
-import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
 public class BluetoothInterfaceService extends InterfaceBaseService
 {
 	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
+	int  notificationId = 1001;
 	BluetoothAdapter mBluetoothAdapter;
 	private BluetoothSocket mSocket;	
 		
@@ -52,15 +54,19 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     		initListeners(this,intent);
     		
     		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
-            if (intent.getBooleanExtra("CONNECT", false))
+            if (intent.getBooleanExtra("CONNECT", true))
             {
+                SharedPreferences prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+        		String bluetoothID = prefs.getString("BT_ID", null);
+        		
+        		if (bluetoothID == null)
+        		{
+        			Toast.makeText(this, "Can't connect to remote device as it's bluetooth device ID has not been set.", Toast.LENGTH_SHORT).show();
+        			return START_STICKY;
+        		}
 	        	try 
 	        	{
-	        		mSocket = mBluetoothAdapter.getRemoteDevice(intent.getStringExtra("BT_ID")).createRfcommSocketToServiceRecord(uuid);
-	
-	        		//Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
-	        		//((BluetoothSocketThread)mSocketThread).startRunning(Socket);
-	        		
+	        		mSocket = mBluetoothAdapter.getRemoteDevice(bluetoothID).createRfcommSocketToServiceRecord(uuid);        		
 				} 
 	        	catch (IOException e) 
 				{
@@ -72,6 +78,13 @@ public class BluetoothInterfaceService extends InterfaceBaseService
 				}
             }
             
+            NotificationCompat.Builder mBuilder =
+    			    new NotificationCompat.Builder(this)
+    			    .setSmallIcon(R.drawable.ic_launcher)
+    			    .setContentTitle("SMS Forwarder")
+    			    .setContentText("Bluetooth Service running.");
+            
+            startForeground(notificationId, mBuilder.build());
         	((BluetoothSocketThread)mServerSocketThread).startRunning(null);
  		}				
 		/* We can send packet data when we start the intent.  This makes things like request inbox easier.*/
@@ -82,13 +95,9 @@ public class BluetoothInterfaceService extends InterfaceBaseService
         return START_STICKY;
     }
 	
-    void ConnectIntentHandler(Context context, Intent intent,boolean autoConnect)
+    void startClientConnection()
     {
-        if (intent.getBooleanExtra("forceConnect", false) || autoConnect)
-        {
-        	((BluetoothSocketThread)mSocketThread).startRunning(mSocket);
-        	//Toast.makeText(this, "BT Connect", Toast.LENGTH_SHORT).show();
-        }
+    	((BluetoothSocketThread)mSocketThread).startRunning(mSocket);
     }
     
     class BluetoothSocketThread extends SocketThread
@@ -112,15 +121,15 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     	{
 			if (server)
 			{
-				statusUpdate("Disconnected.  Waiting for connection.");
+				statusUpdate("Disconnected.  Waiting for connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
 				mSocket = mBluetoothSocket.accept();
 			}
 			else
 			{
-				statusUpdate("Connecting.");
+				statusUpdate("Connecting.", CONNECTION_STATUS_CONNECTING);
 				mSocket.connect();
 			}
-			statusUpdate("Connected.");
+			statusUpdate("Connected.", CONNECTION_STATUS_CONNECTED);
 			
 			out = new DataOutputStream(mSocket.getOutputStream());
 			in  = new DataInputStream(mSocket.getInputStream());

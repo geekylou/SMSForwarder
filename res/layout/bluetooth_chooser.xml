@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/buttonSelect"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true" >
+        android:layout_below="@+id/textViewStatus" >
 
     </ListView>
 
@@ -29,5 +29,14 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:text="Cancel" />
+
+    <TextView
+        android:id="@+id/textViewStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:text="Status:" />
 
 </RelativeLayout>

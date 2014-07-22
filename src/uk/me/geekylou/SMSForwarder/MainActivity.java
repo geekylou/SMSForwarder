@@ -1,11 +1,14 @@
 package uk.me.geekylou.SMSForwarder;
 
+import java.util.Date;
+
 import uk.me.geekylou.SMSForwarder.R;
 
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.provider.Contacts;
 import android.provider.ContactsContract;
@@ -16,7 +19,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
+import android.text.format.Formatter;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
@@ -35,6 +40,7 @@ public class MainActivity extends Activity {
 	TextView txtLOC;
 	TextView txtSock;
 	private SharedPreferences prefs;
+	private Intent mIPService;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +48,8 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_debug);
 
 		mBluetoothService = new Intent(this,BluetoothInterfaceService.class);
+		mIPService = new Intent(this,TCPIPInterfaceService.class);
+		
 		mProtocolHandler  = new ProtocolHandler(this,0x104);
 		
 		txtSock = (TextView)findViewById(R.id.textViewDate);
@@ -50,18 +58,25 @@ public class MainActivity extends Activity {
 		
         prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
 
+        WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
+        String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+        
+        txtGPS.setText(ip);
+        
 		txtLOC.setText(prefs.getString("BT_ID", "")+":"+prefs.getString("BT_NAME",""));
 		
+		final TextView txtIPPeer = (TextView)findViewById(R.id.editTextPeerIP);
+		txtIPPeer.setText(prefs.getString("PEER_IP_ADDRESS", ""));
+		
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-		if (mBluetoothAdapter == null) {
+		if (mBluetoothAdapter != null) {
 		    // Device does not support Bluetooth
-			finish();
-		}
-
-		if (!mBluetoothAdapter.isEnabled()) {
-		    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-		    int REQUEST_ENABLE_BT=45;
-			startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+		
+			if (!mBluetoothAdapter.isEnabled()) {
+				Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+				int REQUEST_ENABLE_BT=45;
+				startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+			}
 		}
 		
 		Button butStart= (Button)findViewById(R.id.buttonStart);
@@ -71,6 +86,30 @@ public class MainActivity extends Activity {
             }
         });
 
+		Button butStartTCP= (Button)findViewById(R.id.buttonStartIP);
+		butStartTCP.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+            	CheckBox checkConnect = (CheckBox)findViewById(R.id.checkBoxIPConnect);
+            	
+            	Editor prefsEdit = prefs.edit();
+            	
+            	prefsEdit.putString("PEER_IP_ADDRESS",txtIPPeer.getText().toString());
+            	prefsEdit.commit();
+            	
+            	mIPService.putExtra("CONNECT", checkConnect.isChecked());
+
+        		startService(mIPService);
+            }
+        });
+		
+		Button butStopTCP= (Button)findViewById(R.id.buttonStopIP);
+		butStopTCP.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+
+        		stopService(mIPService);
+            }
+        });
+		
 		Button but1= (Button)findViewById(R.id.button1);
 		but1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -101,7 +140,7 @@ public class MainActivity extends Activity {
 		Button but4 = (Button)findViewById(R.id.button4);
 		but4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, "+447968975566", "This is a test sms message triggered using a button",0);
+            	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, "+447968975566", "This is a test sms message triggered using a button",new Date().getTime());
             	//mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
             }
         });
@@ -206,6 +245,9 @@ public class MainActivity extends Activity {
 		  if (c.moveToFirst()) {
 		     String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
 		     // yay
+		     
+         	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, phone, "This is a test sms message triggered using a button",new Date().getTime());
+
 		  }
 	}
 }

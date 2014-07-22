@@ -19,18 +19,19 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Telephony;
+import android.telephony.PhoneStateListener;
 import android.telephony.SmsMessage;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
 
 abstract class InterfaceBaseService extends Service
 {
-	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
 	BluetoothAdapter mBluetoothAdapter;
 	ResponseReceiver mReceiver;
 	SMSResponseReceiver mSMSReceiver;
-	String status="";
-	
+	String mStatusString= "";
+	int    mStatusCode  = CONNECTION_STATUS_STOPPED;
 
 	SocketThread  mServerSocketThread;
 	SocketThread  mSocketThread;
@@ -38,6 +39,11 @@ abstract class InterfaceBaseService extends Service
 	public static final String SEND_PACKET     = "uk.me.geekylou.GPSTest.SEND_PACKET";
 	public static final String PACKET_RECEIVED = "uk.me.geekylou.GPSTest.PACKET_RECEIVED";
 	public static final String SERVICE_STATUS_UPDATE = "uk.me.geekylou.GPSTest.SERVICE_STATUS_UPDATE";
+
+	public static final int CONNECTION_STATUS_STOPPED 				 = 0;
+	public static final int CONNECTION_STATUS_WAITING_FOR_CONNECTION = 1;
+	public static final int CONNECTION_STATUS_CONNECTING             = 2;
+	public static final int CONNECTION_STATUS_CONNECTED 			 = 3;
 	
 	void initListeners(Context context, Intent intent)
 	{
@@ -52,7 +58,10 @@ abstract class InterfaceBaseService extends Service
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
 		mSMSReceiver = new SMSResponseReceiver();
 		registerReceiver(mSMSReceiver, filter);
-	}
+		
+		TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        tm.listen(new CallStateListener(), PhoneStateListener.LISTEN_CALL_STATE);
+ 	}
 	
     @SuppressWarnings("deprecation")
 	@Override
@@ -60,20 +69,20 @@ abstract class InterfaceBaseService extends Service
         // Tell the user we stopped.
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show();
 
-        mServerSocketThread.stopRunning();
+        if (mServerSocketThread != null) mServerSocketThread.stopRunning();
         if (mSocketThread != null) mSocketThread.stopRunning();
-		unregisterReceiver(mReceiver);
-		unregisterReceiver(mSMSReceiver);
+        if (mReceiver != null)     unregisterReceiver(mReceiver);
+        if (mSMSReceiver != null)  unregisterReceiver(mSMSReceiver);
     }
 
-	void statusUpdate(String status)
+	void statusUpdate(String statusString, int statusCode)
 	{
-		this.status = status;
+		mStatusString = statusString;
 		
 		Intent broadcastIntent = new Intent();
 		broadcastIntent.setAction(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
 		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-		broadcastIntent.putExtra("STATUS", new String(status));
+		broadcastIntent.putExtra("STATUS", new String(statusString));
 		sendBroadcast(broadcastIntent);
 
 	}
@@ -104,7 +113,7 @@ abstract class InterfaceBaseService extends Service
     	boolean isOpen = false,server=false;  // True when it is safe to write to the socket.
 		private Object mSocket;
     
-    	abstract void initServerConnection();
+    	abstract void initServerConnection() throws IOException;
     	
     	abstract void acceptConnection(boolean server) throws IOException;    	
     	abstract boolean isConnected();
@@ -114,8 +123,16 @@ abstract class InterfaceBaseService extends Service
     	{
     		if (server)
     		{    			
+    			try 
+    			{
     			initServerConnection();
-				statusUpdate("Disconnected.  Waiting for connection.");
+    			} catch(IOException e)
+    			{
+    				e.printStackTrace();
+    				statusUpdate("Disconnected. Can't initilise connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+
+    			}
+				statusUpdate("Disconnected. Waiting for connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
     		}
     		
     		while(running == THREAD_RUNNING)
@@ -134,7 +151,7 @@ abstract class InterfaceBaseService extends Service
 
     			if (!server)
 				{
-					statusUpdate("Waiting to reconnect.");
+					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
 					try {
 						sleep(4000);
 					} catch (InterruptedException e) 
@@ -187,7 +204,7 @@ abstract class InterfaceBaseService extends Service
     			int dest   = in.readShort();
     			int length = in.readShort();
     			
-    			Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
+    			//Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
     			
     			if(!isConnected())
     			{
@@ -201,7 +218,7 @@ abstract class InterfaceBaseService extends Service
     				
     				if(retval != length + 1) {running = THREAD_CLOSING; break;}
     				
-    				Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
+    				//Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
     				
     				handler.decodePacket(header, payload);
     				
@@ -240,7 +257,7 @@ abstract class InterfaceBaseService extends Service
             		e.printStackTrace();
             	}
     		running = THREAD_STOPPED;
-    		statusUpdate("Service stopped.");
+    		statusUpdate("Service stopped.", 0);
     	}
     	
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
@@ -318,23 +335,22 @@ abstract class InterfaceBaseService extends Service
 	            			   "senderNum: "+ senderNum + ", message: " + message, duration);
 	            	   toast.show();
 	                 
-	            	   if (mSocketThread.isOpen)
-	       				{
-	       					try {
-	       						// No point in just looping back an intent to be handled by ourselves so create
-	       						// a message ourselves and inject it into the output stream.
-	       		            	byte buf[] = ProtocolHandler.CreatePacket(0x100,0x104,
-											  ProtocolHandler.CreateSMSPacket(ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,
-											  0, /* id not used on this type of request. */
-											  senderNum, 
-											  message,
-											  new Date().getTime()));
-	       		            	mSocketThread.out.write(buf);
-	       					} catch (IOException e) {
-	       						// TODO Auto-generated catch block
-	       						e.printStackTrace();
-	       					}
-	       				}	
+	            	   
+       					try {
+       						// No point in just looping back an intent to be handled by ourselves so create
+       						// a message ourselves and inject it into the output stream.
+       		            	byte buf[] = ProtocolHandler.CreatePacket(0x100,0x104,
+										  ProtocolHandler.CreateSMSPacket(ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,
+										  0, /* id not used on this type of request. */
+										  senderNum, 
+										  message,
+										  new Date().getTime()));
+       		            	sendPacket(buf);
+       					} catch (IOException e) {
+       						// TODO Auto-generated catch block
+       						e.printStackTrace();
+       					}
+	
 	               } // end for loop
 	          } // bundle is null
 	        } catch (Exception e) {
@@ -342,9 +358,58 @@ abstract class InterfaceBaseService extends Service
 	         
 	        }
 	   	}
-}    
+	}    
     
-	abstract void ConnectIntentHandler(Context context, Intent intent,boolean autoConnect);
+	void sendPacket(byte[] packetData)
+	{
+ 	   if (mSocketThread.isOpen)
+			{
+				mSocketThread.sendPacket(packetData,false);
+			} 
+ 	   else if(mServerSocketThread.isOpen)
+			{
+				mServerSocketThread.sendPacket(packetData,false);
+			}
+ 	   else
+ 	   {
+ 		   // Neither a connection to us to the peer or a connection from the peer is active so queue the message and create one.
+ 		   mSocketThread.sendPacket(packetData,true);    		   
+ 		   startClientConnection();
+ 	   }		
+	}
+	
+	abstract void startClientConnection();
+	
+	/**
+	    * Listener to detect incoming calls. 
+	    */
+    private class CallStateListener extends PhoneStateListener {
+      @Override
+      public void onCallStateChanged(int state, String incomingNumber) {
+          switch (state) {
+              case TelephonyManager.CALL_STATE_RINGING:
+              // called when someone is ringing to this phone
+
+        	  
+    		  try {
+					// No point in just looping back an intent to be handled by ourselves so create
+					// a message ourselves and inject it into the output stream.
+	            	byte buf[] = ProtocolHandler.CreatePacket(0x100,0x104,
+								 ProtocolHandler.CreateSMSPacket(ProtocolHandler.SMS_MESSAGE_TYPE_PHONE_CALL,
+								 0, /* id not used on this type of request. */
+								 incomingNumber, 
+								 "",
+								 new Date().getTime()));
+	            	sendPacket(buf);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+       
+              break;
+          }
+      }
+    }
 	
 	class ResponseReceiver extends BroadcastReceiver 
 	{	
@@ -355,29 +420,26 @@ abstract class InterfaceBaseService extends Service
 	   @Override
 	    public void onReceive(Context context, Intent intent) 
 	   	{
-		   ConnectIntentHandler(context,intent,false);
-		   
+		   try {
 		   if (intent.getBooleanExtra("requestStatus", false))
 		   {
 				Intent broadcastIntent = new Intent();
 				broadcastIntent.setAction(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
 				broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-				broadcastIntent.putExtra("STATUS", new String(status));
+				broadcastIntent.putExtra("STATUS", new String(mStatusString));
+				broadcastIntent.putExtra("StatusCode", mStatusCode);
+				
 				sendBroadcast(broadcastIntent);
 		   }
-    	   if (mSocketThread.isOpen)
-			{
-				mSocketThread.sendPacket(intent.getByteArrayExtra ("packetData"),false);
-			} 
-    	   else if(mServerSocketThread.isOpen)
-			{
-				mServerSocketThread.sendPacket(intent.getByteArrayExtra ("packetData"),false);
-			}
-    	   else
-    	   {
-    		   mSocketThread.sendPacket(intent.getByteArrayExtra ("packetData"),true);    		   
-    		   ConnectIntentHandler(context,intent,true);
-    	   }
+		   
+		   sendPacket(intent.getByteArrayExtra ("packetData"));
+    	   
+    	   if (intent.getBooleanExtra("forceConnect", false))
+           {
+    		   /* This handle force connect intents where we have nothing to send but want to open the channel anyway.*/
+    		   startClientConnection();
+           }
+		   } catch(Exception e){e.printStackTrace();}
 	   	}
 	}
 	
