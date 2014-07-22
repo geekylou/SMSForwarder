@@ -108,7 +108,8 @@ public class InboxActivity extends Activity {
         super.onCreate(savedInstanceState);
      
         setContentView(R.layout.bluetooth_chooser);
-
+        final Intent intent = getIntent();
+        
         mProtocolHandler = new InboxProtocolHandler(this,0x104);
         mBluetoothDeviceArrayAdapter = new ImageViewAdapter(this, R.layout.text_preview_item);
 		
@@ -124,8 +125,10 @@ public class InboxActivity extends Activity {
         Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
 		bluetoothService.putExtra("CONNECT", true);
 		bluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));			
-
-    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "",0);
+		
+		String search = intent.getStringExtra("search");
+		if(search == null) search="";
+    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
 	
  		startService(bluetoothService);
 		

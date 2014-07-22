@@ -73,8 +73,6 @@ public class BluetoothInterfaceService extends InterfaceBaseService
             }
             
         	((BluetoothSocketThread)mServerSocketThread).startRunning(null);
-        	
-        	initListeners(this,intent);
  		}				
 		/* We can send packet data when we start the intent.  This makes things like request inbox easier.*/
 		mReceiver.onReceive(this,intent);

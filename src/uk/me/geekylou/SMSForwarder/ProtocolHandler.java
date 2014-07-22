@@ -221,6 +221,7 @@ public class ProtocolHandler
     	
     	switch(type)
     	{
+    	case SMS_MESSAGE_TYPE_SEND:
     	case SMS_MESSAGE_TYPE_NOTIFICATION:
 	    	// define the columns to return for getting the name of the sender.
 	    	String[] projection = new String[] {
@@ -261,17 +262,27 @@ public class ProtocolHandler
 			// Builds the notification and issues it.
 			mNotifyMgr.notify(mNotificationId, mBuilder.build());
 			break;
-    	case SMS_MESSAGE_TYPE_SEND:
+    	//case SMS_MESSAGE_TYPE_SEND:
     		/* Sender is destination no. in the case of a send type.*/
     		/* [NOTE] disabled sending of text messages. */
     		//SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
-    		break;
+    	//	break;
     	case SMS_MESSAGE_TYPE_REQUEST:
 			{
+				Log.i("ProtocolHandler", "handleSMSMessage - SMS_MESSAGE_TYPE_REQUEST\n");
+				String search[] = {sender};
 				String msgData = "";
-				cursor = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);
-				cursor.moveToFirst();
-		
+				if (!sender.equals(""))
+				{
+					cursor = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, "address=?", search, null);
+				}
+				else
+				{
+					cursor = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);					
+				}
+				
+				if (!cursor.moveToFirst())
+					break;
 				do{	
 					sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE,
 								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),

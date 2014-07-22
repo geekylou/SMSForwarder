@@ -170,7 +170,7 @@ abstract class InterfaceBaseService extends Service
 					{
 						Log.i("BluetoothInterfaceService", "in.write "+server);
 						item = mPacketQueue.removeFirst();
-						Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffer);
+						//Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffe);
 						
 						out.write(item.packetBuffer);
 					}
@@ -256,10 +256,10 @@ abstract class InterfaceBaseService extends Service
     	
     	boolean sendPacket(byte[] packetData,boolean buffer)
     	{
-    		if (mSocketThread.isOpen && packetData != null)
+    		if (isOpen && packetData != null)
 			{
 				try {
-					mSocketThread.out.write(packetData);
+					out.write(packetData);
 					return true;
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
