@@ -102,8 +102,8 @@ public class InboxFragment extends Fragment {
 	
     /** Called when the activity is first created. */
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
      
         Activity ctx = getActivity();
         
@@ -112,52 +112,46 @@ public class InboxFragment extends Fragment {
         mProtocolHandler = new InboxProtocolHandler(getActivity(),0x104);
         mBluetoothDeviceArrayAdapter = new ImageViewAdapter(ctx, R.layout.text_preview_item);
 		
-        prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+        prefs = ctx.getSharedPreferences("BluetoothPreferences", ctx.MODE_PRIVATE);
 
         /* Start listening for replies before doing anything else.*/
 		IntentFilter filter = new IntentFilter(InterfaceBaseService.PACKET_RECEIVED);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
-		registerReceiver(receiver, filter);
+		ctx.registerReceiver(receiver, filter);
 
         /* Start listening for status doing anything else.*/
 		filter = new IntentFilter(InterfaceBaseService.SERVICE_STATUS_UPDATE);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	mStatusReceiver = new StatusReceiver();
-    	registerReceiver(mStatusReceiver, filter);
+    	ctx.registerReceiver(mStatusReceiver, filter);
     	
-        /* Start service with a request for the inbox on the peer.*/
-        Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
+    	
+    	/* Move to base activity.
+    	
+        /* Start service with a request for the inbox on the peer.
+        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
 		
 		search = intent.getStringExtra("search");
 		if(search == null) search="";
     	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
-    	/* cludge to make TCPIP Service work.*/
+    	/* cludge to make TCPIP Service work.
     	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
 	
  		startService(bluetoothService);
 		
-		mInboxEntriesView = (ListView) findViewById(R.id.listView1);
-        mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);
-        
-        mStatusTextView = (TextView) findViewById(R.id.textViewStatus);
+ 		*/
+ 		
+		mInboxEntriesView = (ListView) getView().findViewById(R.id.listView1);
+        mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);        
     }
-    
-    /* This sends a request to the service to send us the current connection status.*/
-    public void onResume()
-	{
-		super.onResume();
-		Intent broadcastIntent = new Intent();
-		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
-		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-		broadcastIntent.putExtra("requestStatus", true);
-		sendBroadcast(broadcastIntent);
-	}
-    
+        
     public void onDestroy()
     {
-    	unregisterReceiver(mStatusReceiver);
-    	unregisterReceiver(receiver);
+        Activity ctx = getActivity();
+        
+    	ctx.unregisterReceiver(mStatusReceiver);
+    	ctx.unregisterReceiver(receiver);
     	super.onDestroy();
     }
     class InboxProtocolHandler extends ProtocolHandler {
