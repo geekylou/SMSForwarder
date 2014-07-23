@@ -31,7 +31,8 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
 
 	protected static final int CONTACT = 0;
-	protected static final int PICK_CONTACT = 0;
+	protected static final int PICK_CONTACT   = 10;
+	protected static final int PICK_BT_DEVICE = 11;
 	Intent          mBluetoothService;
 	ResponseReceiver receiver;
 	ProtocolHandler  mProtocolHandler;
@@ -134,13 +135,13 @@ public class MainActivity extends Activity {
             	
             	@SuppressWarnings("deprecation")
 				Intent intent = new Intent(Intent.ACTION_PICK, Contacts.Phones.CONTENT_URI);
-            	startActivityForResult(intent, CONTACT); 
+            	startActivityForResult(intent, PICK_CONTACT); 
             }
         });
 		Button but4 = (Button)findViewById(R.id.button4);
 		but4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, "+447968975566", "This is a test sms message triggered using a button",new Date().getTime());
+            	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, "112233", "This is a test sms message triggered using a button",new Date().getTime());
             	//mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
             }
         });
@@ -157,7 +158,7 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
             	Intent intent = new Intent(MainActivity.this, BluetoothChooserActivity.class);
 				intent.setAction(intent.ACTION_INSERT);
-				startActivityForResult(intent,0);
+				startActivityForResult(intent,PICK_BT_DEVICE);
 				// TODO Auto-generated method stub
             }
         });	
@@ -240,7 +241,7 @@ public class MainActivity extends Activity {
 		}
 	public void onActivityResult (int requestCode, int resultCode, Intent intent) 
 	{
-		  if (resultCode != Activity.RESULT_OK || requestCode != CONTACT) return;
+		  if (resultCode != Activity.RESULT_OK || requestCode != PICK_CONTACT) return;
 		  Cursor c = managedQuery(intent.getData(), null, null, null, null);
 		  if (c.moveToFirst()) {
 		     String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
