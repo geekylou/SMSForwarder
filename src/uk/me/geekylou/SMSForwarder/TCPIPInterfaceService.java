@@ -16,7 +16,6 @@ import android.widget.Toast;
 
 public class TCPIPInterfaceService extends InterfaceBaseService
 {
-	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
 	BluetoothAdapter mBluetoothAdapter;	
 		
 	public TCPIPInterfaceService()
@@ -61,7 +60,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
             }
             else
             {
-            	((TCPIPSocketThread)mSocketThread).startRunning(null,9100);
+            	((TCPIPSocketThread)mSocketThread).startRunning(null,intent.getIntExtra("PEER_PORT", 9100));
             }    		
 		}				
         
@@ -80,7 +79,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
     	    
     	void initServerConnection() throws IOException
     	{    		
-			mBluetoothSocket = new ServerSocket(9100);
+			mBluetoothSocket = new ServerSocket(mPort);
     	}
     	
     	void acceptConnection(boolean server) throws IOException
