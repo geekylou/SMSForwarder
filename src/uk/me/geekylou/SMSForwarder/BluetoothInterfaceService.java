@@ -149,19 +149,22 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
     	void startRunning(BluetoothSocket socket)
     	{
-    		if(running == THREAD_STOPPED)
+    		synchronized(this)
     		{
-    			mSocket = socket;
-    			if (socket != null)
-    			{
-    				server=false;
-    			}
-    			else
-    			{
-    				server=true;
-    			}
-    			running = THREAD_RUNNING;
-    			start();
+	    		if(running == THREAD_STOPPED)
+	    		{
+	    			mSocket = socket;
+	    			if (socket != null)
+	    			{
+	    				server=false;
+	    			}
+	    			else
+	    			{
+	    				server=true;
+	    			}
+	    			running = THREAD_RUNNING;
+	    			start();
+	    		}
     		}
     	}
     }
