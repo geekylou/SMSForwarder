@@ -92,6 +92,11 @@ public class InboxFragment extends Fragment {
 	boolean threadView=true;
 	private TextView mStatusTextView;
 	
+	public InboxFragment()
+	{
+		
+	}
+	
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
         Bundle savedInstanceState) {
@@ -125,22 +130,6 @@ public class InboxFragment extends Fragment {
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	mStatusReceiver = new StatusReceiver();
     	ctx.registerReceiver(mStatusReceiver, filter);
-    	
-    	
-    	/* Move to base activity.
-    	
-        /* Start service with a request for the inbox on the peer.
-        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-		
-		search = intent.getStringExtra("search");
-		if(search == null) search="";
-    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
-    	/* cludge to make TCPIP Service work.
-    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
-	
- 		startService(bluetoothService);
-		
- 		*/
  		
 		mInboxEntriesView = (ListView) getView().findViewById(R.id.listView1);
         mInboxEntriesView.setAdapter(mBluetoothDeviceArrayAdapter);        
@@ -249,7 +238,7 @@ public class InboxFragment extends Fragment {
 	            break;
 	    	case SMS_MESSAGE_TYPE_DONE:
 	    		if(id == SMS_MESSAGE_TYPE_REQUEST)
-	    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,search,"",0);
+	    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,"","",0);
 	    	}
     	}
 
@@ -280,8 +269,6 @@ public class InboxFragment extends Fragment {
  	   @Override
  	    public void onReceive(Context context, Intent intent) 
  	    {
- 		   String status = intent.getStringExtra("STATUS");
- 	       if (status != null) mStatusTextView.setText("Status:"+status);
  	    }
  	}
 }

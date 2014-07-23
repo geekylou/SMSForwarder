@@ -56,6 +56,7 @@
             </intent-filter>
         <activity android:name="InboxActivity"></activity>
         <activity android:name="BluetoothChooserActivity"></activity>
+        <activity android:name="MainScreenActivity"></activity>
     </application>
 
 </manifest>

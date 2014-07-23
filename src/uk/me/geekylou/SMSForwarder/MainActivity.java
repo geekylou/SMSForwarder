@@ -166,7 +166,7 @@ public class MainActivity extends Activity {
 		Button butInboxActivity = (Button)findViewById(R.id.buttonStartInboxActivity);
 		butInboxActivity.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	Intent intent = new Intent(MainActivity.this, InboxActivity.class);
+            	Intent intent = new Intent(MainActivity.this, MainScreenActivity.class);
 				intent.setAction(intent.ACTION_VIEW);
 				startActivityForResult(intent,0);
 				// TODO Auto-generated method stub

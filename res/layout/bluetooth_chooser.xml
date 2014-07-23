@@ -4,7 +4,7 @@
     android:layout_height="match_parent" >
 
     <Button
-        android:id="@+id/buttonSelect"
+        android:id="@+id/buttonSubmit"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -16,7 +16,7 @@
         android:id="@+id/listView1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/buttonSelect"
+        android:layout_above="@+id/buttonSubmit"
         android:layout_alignParentLeft="true"
         android:layout_below="@+id/textViewStatus" >
 
