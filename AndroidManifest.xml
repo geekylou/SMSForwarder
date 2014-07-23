@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="uk.me.geekylou.SMSForwarder"
-    android:versionCode="2"
-    android:versionName="0.01" >
+    android:versionCode="3"
+    android:versionName="0.01.1" >
 
     <uses-sdk
         android:minSdkVersion="14"
@@ -34,7 +34,7 @@
         <service android:name="BluetoothInterfaceService">
             <intent-filter>
                 <action android:name=
-                    "android.provider.Telephony.SMS_RECEIVED" />
+                    "android.provider.Telephony.SMS_RECEIVED" android:required="false"/>
             </intent-filter>
         </service>
         <service android:name="TCPIPInterfaceService"></service>
