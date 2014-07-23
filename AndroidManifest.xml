@@ -50,6 +50,10 @@
             </intent-filter>
         </service>
         <service android:name="TCPIPInterfaceService"></service>
+         <intent-filter>
+                <action android:name=
+                    "android.provider.Telephony.SMS_RECEIVED"/>
+            </intent-filter>
         <activity android:name="InboxActivity"></activity>
         <activity android:name="BluetoothChooserActivity"></activity>
     </application>
