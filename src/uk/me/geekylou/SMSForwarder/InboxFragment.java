@@ -9,6 +9,7 @@ import java.util.Iterator;
 import uk.me.geekylou.SMSForwarder.R;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
@@ -22,7 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
-import android.support.v4.app.Fragment;
+
 import android.support.v4.app.NotificationCompat;
 import android.view.View;
 import android.view.ViewGroup;
@@ -91,6 +92,7 @@ public class InboxFragment extends Fragment {
 	
 	boolean threadView=true;
 	private TextView mStatusTextView;
+	private String mSender;
 	
 	public InboxFragment()
 	{
@@ -215,7 +217,8 @@ public class InboxFragment extends Fragment {
 	        		if (threadView)
 		        		mBluetoothDeviceArrayAdapter.remove(entry);	        		
 
-	        		mBluetoothDeviceArrayAdapter.insert(entry, 0);	        		
+        			if (mSender == null || mSender.equals(sender))
+        				mBluetoothDeviceArrayAdapter.insert(entry, 0);	        		
 	        	}
 	        	else
 	        	{
@@ -231,8 +234,11 @@ public class InboxFragment extends Fragment {
 	        				mBluetoothDeviceArrayAdapter.notifyDataSetChanged();
 	        			}
 	        		}
-	        		else if (!addEntryToCache(entry))
-	        			mBluetoothDeviceArrayAdapter.add(entry);
+	        		else 
+	        		{
+	        			if (mSender == null || mSender.equals(sender))
+	        				mBluetoothDeviceArrayAdapter.add(entry);
+	        		}
 	        	}
 	            cursor.close();
 	            break;
@@ -248,6 +254,13 @@ public class InboxFragment extends Fragment {
 			return false;
 		}
     }
+    
+    void setSender(String sender)
+    {
+    	mSender = sender;
+    	threadView = false;
+    }
+    
     class ResponseReceiver extends BroadcastReceiver {
 		ResponseReceiver()
 		{

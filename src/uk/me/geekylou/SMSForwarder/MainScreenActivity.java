@@ -20,6 +20,13 @@ public class MainScreenActivity extends FragmentActivity {
 		
 		String search = intent.getStringExtra("search");
 		if(search == null) search="";
+		
+		InboxFragment detailFragment;
+	
+		detailFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
+		
+		detailFragment.setSender("Emily (Flat)");
+		
     	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
     	/* cludge to make TCPIP Service work.*/
     	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
