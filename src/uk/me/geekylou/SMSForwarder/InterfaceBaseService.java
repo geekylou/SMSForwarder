@@ -256,7 +256,6 @@ abstract class InterfaceBaseService extends Service
             	{
             		e.printStackTrace();
             	}
-    		running = THREAD_STOPPED;
     		statusUpdate("Service stopped.", 0);
     	}
     	
