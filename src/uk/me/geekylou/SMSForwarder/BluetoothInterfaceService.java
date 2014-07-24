@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.UUID;
 
+import android.app.NotificationManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
@@ -95,6 +96,20 @@ public class BluetoothInterfaceService extends InterfaceBaseService
         return START_STICKY;
     }
 	
+	void statusUpdate(String statusString, int statusCode)
+	{
+		super.statusUpdate(statusString,statusCode);
+        NotificationCompat.Builder mBuilder =
+			    new NotificationCompat.Builder(this)
+			    .setSmallIcon(R.drawable.ic_launcher)
+			    .setContentTitle("SMS Forwarder")
+			    .setContentText(statusString);
+        
+        NotificationManager mNotifyMgr = 
+		        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        
+		mNotifyMgr.notify(notificationId, mBuilder.build());
+	}
     void startClientConnection()
     {
     	((BluetoothSocketThread)mSocketThread).startRunning(mSocket);
