@@ -243,9 +243,12 @@ abstract class InterfaceBaseService extends Service
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
     	void stopRunning()
     	{
-    		running = THREAD_CLOSING;
+    		running = THREAD_CLOSING;/* Could use isInterrupted instead however we need a value to store whether the thread has 
+    		shutdown so we might as we continue using the status value.*/
+    		
     		
             try {
+            	interrupt();
             	close();
     			try {
     				join(10000);
