@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.http.util.ByteArrayBuffer;
@@ -32,6 +33,12 @@ abstract class InterfaceBaseService extends Service
 	SMSResponseReceiver mSMSReceiver;
 	String mStatusString= "";
 	int    mStatusCode  = CONNECTION_STATUS_STOPPED;
+	
+	/* connectionLocks is used to safely close the connection (ensure that no other service or activity is using it when it's closed.
+	   When the connection is opened we add a lock string provided by the caller to the connectionLocks object.
+	   When the caller no longer needs the connection it sends a close command with the lock string which causes us to remove the relevent
+	   entry from the map.  If the map is empty then we close the connection to the peer.*/
+	TreeMap<String,String> connectionLocks = new TreeMap<String,String>();
 
 	SocketThread  mServerSocketThread;
 	SocketThread  mSocketThread;
@@ -44,6 +51,22 @@ abstract class InterfaceBaseService extends Service
 	public static final int CONNECTION_STATUS_WAITING_FOR_CONNECTION = 1;
 	public static final int CONNECTION_STATUS_CONNECTING             = 2;
 	public static final int CONNECTION_STATUS_CONNECTED 			 = 3;
+	
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+    	
+    	/* If we set closeKey then this will prevent other callers from shutting down the connection until we shutdown the connection ourselves
+    	 * with a call containing the close key.
+    	 */
+    	String closeKey = intent.getStringExtra("closeKey");
+    	
+    	if (closeKey != null)
+    	{
+    		connectionLocks.put(closeKey, closeKey);
+    	}
+        return START_STICKY;
+        		
+    }
 	
 	void initListeners(Context context, Intent intent)
 	{
@@ -69,6 +92,7 @@ abstract class InterfaceBaseService extends Service
         // Tell the user we stopped.
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show();
 
+        connectionLocks.clear(); /* not ideal but we a pulling the rug out from any callers anyway so... */
         if (mServerSocketThread != null) mServerSocketThread.stopRunning();
         if (mSocketThread != null) mSocketThread.stopRunning();
         if (mReceiver != null)     unregisterReceiver(mReceiver);
@@ -98,9 +122,10 @@ abstract class InterfaceBaseService extends Service
     	// (starting a thread which is already started will cause an exception).  So we know it's safe to restart the
     	// thread we set running=THREAD_CLOSING when we want it to shutdown.  It will then set running=THREAD_STOPPED
     	// when it is finished running and it is now safe to restart the thread.
-    	static final int THREAD_STOPPED = 0;
-    	static final int THREAD_RUNNING = 1;
-    	static final int THREAD_CLOSING = 2;
+    	static final int THREAD_STOPPED 	  = 0;
+    	static final int THREAD_RUNNING 	  = 1;
+    	static final int THREAD_CLOSING 	  = 2;
+    	static final int THREAD_STOP_DEFERRED = 3;
     	
     	public Object lock = new Object();
     	String msg = "";
@@ -118,9 +143,11 @@ abstract class InterfaceBaseService extends Service
     	abstract void acceptConnection(boolean server) throws IOException;    	
     	abstract boolean isConnected();
     	abstract void close() throws IOException;
-    	
+		private OutputThread mOutputThread = null;
+		
     	public void run()
     	{
+    		mOutputThread = new OutputThread();
     		if (server)
     		{    			
     			try 
@@ -164,7 +191,16 @@ abstract class InterfaceBaseService extends Service
 
         		out = null;
     		}
-    		running = THREAD_STOPPED;
+    		synchronized(this)
+    		{
+    			if (mOutputThread != null)
+    			{
+    				mOutputThread.status = THREAD_CLOSING;
+    				mOutputThread.interrupt();
+    				running = THREAD_STOPPED;
+    			}
+    			mOutputThread = null;
+    		}
     	}
     	
     	void handleConnection() throws IOException
@@ -175,27 +211,8 @@ abstract class InterfaceBaseService extends Service
     		{
     		isOpen = true;
     		}
-    		
-			/* Send out anything currently queued before doing anything else.
-			 * This is safe to do in the sender thread as we don't wait for anything.
-			 */
-			PacketQueueItem item;
-			synchronized(mPacketQueue)
-			{
-				try {
-					while(!mPacketQueue.isEmpty())
-					{
-						Log.i("BluetoothInterfaceService", "in.write "+server);
-						item = mPacketQueue.removeFirst();
-						//Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffe);
-						
-						out.write(item.packetBuffer);
-					}
-				} catch(NoSuchElementException e) {
-					e.printStackTrace();
-				}
-				
-   			}
+
+			mOutputThread.start();
 
     		while(running == THREAD_RUNNING)
     		{
@@ -239,10 +256,67 @@ abstract class InterfaceBaseService extends Service
     		in.close();
     		out.close();
     	}
-    	    	
+    	
+    	/* TODO: move output and connection management here.*/
+    	class OutputThread extends Thread
+    	{
+    		Object waitObj = new Object();
+    		
+    		int status = THREAD_RUNNING;
+    		public void run()
+    		{
+    			while(!isInterrupted() && (status == THREAD_RUNNING || status == THREAD_STOP_DEFERRED))
+    			{	
+    				/* Send out anything currently queued before doing anything else.
+    				 * This is safe to do in the sender thread as we don't wait for anything.
+    				 */
+    				PacketQueueItem item;
+    				synchronized(mPacketQueue)
+    				{
+    					try {
+    						
+    						while(!mPacketQueue.isEmpty())
+    						{
+    							Log.i("BluetoothInterfaceService", "in.write "+server);
+    							item = mPacketQueue.removeFirst();
+    						//Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffe);
+    							
+    							out.write(item.packetBuffer);
+    						}
+    					} catch(NoSuchElementException e) {
+    						e.printStackTrace();
+    					} catch (IOException e) {
+    						e.printStackTrace();
+    						if (!isConnected())
+    							return;
+						}
+    	   			}
+    				
+    				try {
+    					synchronized(waitObj)
+    					{
+    						waitObj.wait(10000);
+    					}
+					} catch (InterruptedException e) {
+						return;
+					}
+    				
+    				if (status == THREAD_STOP_DEFERRED)
+    				{
+    					stopRunning();
+    				}
+    			}
+    		}
+    	}
+    	
+    	void stopRunningDeffered()
+    	{
+    		if (mOutputThread != null)
+    			mOutputThread.status = THREAD_STOP_DEFERRED;
+    	}
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
     	void stopRunning()
-    	{
+    	{    		
     		running = THREAD_CLOSING;/* Could use isInterrupted instead however we need a value to store whether the thread has 
     		shutdown so we might as we continue using the status value.*/
     		
@@ -289,10 +363,10 @@ abstract class InterfaceBaseService extends Service
     		{
     			synchronized(mPacketQueue)
     			{
-    			PacketQueueItem item = new PacketQueueItem();
-    			item.packetBuffer = packetData;
-    			mPacketQueue.addLast(item);
-    			Log.i("BluetoothInterfaceService", "add to queue ");
+    	    		PacketQueueItem item = new PacketQueueItem();
+    	    		item.packetBuffer = packetData;
+    	    		mPacketQueue.addLast(item);
+    	    		Log.i("BluetoothInterfaceService", "add to queue ");
     			}
     		}
 			return false;
@@ -301,7 +375,7 @@ abstract class InterfaceBaseService extends Service
 
 	class SMSResponseReceiver extends BroadcastReceiver {
 		ProtocolHandler  mProtocolHandler;
-		
+		static final String openKey = "me.uk.geekylou.InterfaceBaseService.SMSResponseReceiver";
 		SMSResponseReceiver()
 		{
 			super();
@@ -347,7 +421,8 @@ abstract class InterfaceBaseService extends Service
 										  senderNum, 
 										  message,
 										  new Date().getTime()));
-       		            	sendPacket(buf);
+       		            	sendPacket(buf,openKey);
+       		            	closeConnection(openKey);
        					} catch (IOException e) {
        						// TODO Auto-generated catch block
        						e.printStackTrace();
@@ -362,8 +437,12 @@ abstract class InterfaceBaseService extends Service
 	   	}
 	}    
     
-	void sendPacket(byte[] packetData)
+	void sendPacket(byte[] packetData,String closeKey)
 	{
+	   if (closeKey != null)
+	   {
+		   connectionLocks.put(closeKey, closeKey);
+	   }
  	   if (mSocketThread.isOpen)
 			{
 				mSocketThread.sendPacket(packetData,false);
@@ -380,12 +459,24 @@ abstract class InterfaceBaseService extends Service
  	   }		
 	}
 	
+	/* Safe close connection.  Only close the connection if no other activity is using it.*/
+	void closeConnection(String closeKey)
+	{
+		connectionLocks.remove(closeKey);
+		if (connectionLocks.isEmpty())
+		{
+			mSocketThread.stopRunningDeffered();
+		}
+	}
+	
 	abstract void startClientConnection();
 	
 	/**
 	    * Listener to detect incoming calls. 
 	    */
     private class CallStateListener extends PhoneStateListener {
+	  static final String openKey = "me.uk.geekylou.InterfaceBaseService.PhoneStateListener";
+
       @Override
       public void onCallStateChanged(int state, String incomingNumber) {
           switch (state) {
@@ -402,7 +493,8 @@ abstract class InterfaceBaseService extends Service
 								 incomingNumber, 
 								 "",
 								 new Date().getTime()));
-	            	sendPacket(buf);
+	            	sendPacket(buf,openKey);
+	            	closeConnection(openKey);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -423,6 +515,15 @@ abstract class InterfaceBaseService extends Service
 	    public void onReceive(Context context, Intent intent) 
 	   	{
 		   try {
+		   String closeKey = intent.getStringExtra("closeKey");
+		   if (closeKey != null)
+		   {
+			   connectionLocks.remove(closeKey);
+			   if (connectionLocks.isEmpty())
+			   {
+				   mSocketThread.stopRunning();
+			   }
+		   }
 		   if (intent.getBooleanExtra("requestStatus", false))
 		   {
 				Intent broadcastIntent = new Intent();
@@ -434,8 +535,8 @@ abstract class InterfaceBaseService extends Service
 				sendBroadcast(broadcastIntent);
 		   }
 		   
-		   sendPacket(intent.getByteArrayExtra ("packetData"));
-    	   
+		   sendPacket(intent.getByteArrayExtra ("packetData"),intent.getStringExtra("openKey"));
+		   
     	   if (intent.getBooleanExtra("forceConnect", false))
            {
     		   /* This handle force connect intents where we have nothing to send but want to open the channel anyway.*/
