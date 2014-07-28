@@ -52,9 +52,6 @@ abstract public class CachingProtocolHandler extends ProtocolHandler {
     	{
     	case SMS_MESSAGE_TYPE_DONE:
 			updateFinished();
-
-			if(id == SMS_MESSAGE_TYPE_REQUEST)
-    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,"","",0);
     	}
         return false;
 	}
