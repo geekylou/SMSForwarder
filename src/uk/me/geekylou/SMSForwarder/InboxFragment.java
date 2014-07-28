@@ -11,6 +11,8 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.view.LayoutInflater;
@@ -26,6 +28,7 @@ public class InboxFragment extends Fragment {
 	private MessageCache mMessages;
 	private ResponseReceiver mResponseReceiver;
 	private boolean mThreadView;
+	private ArrayAdapter<InboxEntry> mInboxEntriesAdapter;
 	
 	public InboxFragment()
 	{
@@ -55,7 +58,7 @@ public class InboxFragment extends Fragment {
     	mResponseReceiver = new ResponseReceiver();
     	ctx.registerReceiver(mResponseReceiver, filter);
  		
-		mInboxEntriesView = (ListView) getView().findViewById(R.id.listView1);      
+		mInboxEntriesView = (ListView) getView().findViewById(R.id.listView1);      		
     }
         
     public void onDestroy()
@@ -75,11 +78,23 @@ public class InboxFragment extends Fragment {
     	update();
     }
     
+    void setOnClickListener(AdapterView.OnItemClickListener onClickListener)
+    {
+		mInboxEntriesView.setOnItemClickListener(onClickListener);
+    }
+    
+    InboxEntry getItem(int position)
+    {
+    	return mInboxEntriesAdapter.getItem(position);
+    }
+    
     void update()
     {
     	Activity ctx = getActivity();
+    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, R.layout.text_preview_item), mSender,threadView);
     	
-    	mInboxEntriesView.setAdapter(mMessages.GetTimeline(new ImageViewAdapter(ctx, R.layout.text_preview_item), mSender,threadView));
+    	mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
+    	
     }
     
     class ResponseReceiver extends BroadcastReceiver {

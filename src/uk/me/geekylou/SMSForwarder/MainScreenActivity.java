@@ -18,6 +18,8 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.FragmentActivity;
+import android.view.View;
+import android.widget.AdapterView;
 
 public class MainScreenActivity extends FragmentActivity {
 	private CachingProtocolHandler mProtocolHandler;
@@ -59,17 +61,26 @@ public class MainScreenActivity extends FragmentActivity {
 	{
 		super.onResume();
 
-		InboxFragment listFragment;
+		final InboxFragment listFragment;
+		final InboxFragment detailFragment;
 		
 		listFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.listFragment));
-		
 		listFragment.setMessageCache(mMessages,null,true);
 
-		InboxFragment detailFragment;
-		
 		detailFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
 		
-		detailFragment.setMessageCache(mMessages,"Emily (Flat)",true); // "Emily (Flat)"		
+		String sender = listFragment.getItem(0).sender + listFragment.getItem(0).senderRaw;
+		
+		detailFragment.setMessageCache(mMessages,sender,true);
+
+		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
+
+	      	  @Override
+	      	  public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+
+	      		detailFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,true);
+	      	  }
+	      	});
 	}
 	
 	class ResponseReceiver extends BroadcastReceiver {

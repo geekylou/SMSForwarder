@@ -114,7 +114,7 @@ public class MessageCache extends SQLiteOpenHelper
 		db.delete(TABLE_NAME,"_id='"+entry.id+"'", null);
 	}
 	
-	public ArrayAdapter<InboxEntry> GetTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender,boolean threadView)
+	public ArrayAdapter<InboxEntry> getTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender,boolean threadView)
 	{
 		HashMap<String,InboxEntry> mHashmap;
 		SQLiteDatabase db = getWritableDatabase();
@@ -148,7 +148,7 @@ public class MessageCache extends SQLiteOpenHelper
 
 			//Log.d("SMSForwarder", "MessageCache " + c.getLong(c.getColumnIndex("date")));
 
-			/*
+			
         	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
 
         	// query contact.
@@ -170,8 +170,8 @@ public class MessageCache extends SQLiteOpenHelper
     		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
         	 * message.*/
 			
-        	/*if (entry.bitmap == null)
-        		entry.bitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);*/
+        	if (entry.bitmap == null)
+        		entry.bitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
 
 			if (threadView)
     		{
