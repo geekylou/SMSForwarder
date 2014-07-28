@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.telephony.PhoneNumberUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +17,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 public class TimelineFragment extends InboxFragment
-{	 
+{	
+	private InboxEntry baseEntry;
+	
 	public TimelineFragment()
 	{
 		
@@ -40,9 +43,12 @@ public class TimelineFragment extends InboxFragment
             TextView messageText = (TextView) getView().findViewById(R.id.multiAutoCompleteTextViewSMS);
             Activity ctx = getActivity();
             String message = messageText.getText().toString();
+
+            Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
             
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x104);
-			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, getItem(0).senderRaw,  message,new Date().getTime());
+        	
+			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
 
 			InboxEntry baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
 			InboxEntry entry     = new InboxEntry();
@@ -58,6 +64,16 @@ public class TimelineFragment extends InboxFragment
 			mInboxEntriesAdapter.insert(entry, 0);
             }
         });
+    }
+
+    void messageToNewContact(MessageCache messages,String sender,String number,boolean threadView)
+    {
+    	super.setMessageCache(messages, sender, threadView);
+
+    	InboxEntry baseEntry = new InboxEntry();
+    	
+    	baseEntry.sender = sender;
+    	baseEntry.senderRaw = number;
     }
     
     void setMessageCache(MessageCache messages,String Sender,boolean threadView)
@@ -75,9 +91,11 @@ public class TimelineFragment extends InboxFragment
         
         int count = array.getCount();
         
+		baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
+        
         for (int index=0;index<count;index++)
         {
-        	if (PhoneNumberUtils.compare(array.getItem(index),getItem(0).senderRaw))
+        	if (PhoneNumberUtils.compare(array.getItem(index),baseEntry.senderRaw))
         	{
         		spinner.setSelection(index);
         	}

@@ -6,6 +6,7 @@ import java.util.HashMap;
 
 import uk.me.geekylou.SMSForwarder.InboxActivity.InboxProtocolHandler;
 import uk.me.geekylou.SMSForwarder.InboxActivity.ResponseReceiver;
+import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -15,16 +16,22 @@ import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
 
 public class MainScreenActivity extends FragmentActivity {
+	protected static final int PICK_CONTACT = 0;
 	private CachingProtocolHandler mProtocolHandler;
 	private MessageCache mMessages;
 	private ResponseReceiver receiver;
+	
+	private InboxFragment listFragment;
+	private TimelineFragment detailFragment;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -60,14 +67,11 @@ public class MainScreenActivity extends FragmentActivity {
 	protected void onResume()
 	{
 		super.onResume();
-
-		final InboxFragment listFragment;
-		final InboxFragment detailFragment;
 		
 		listFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.listFragment));
 		listFragment.setMessageCache(mMessages,null,true);
 
-		detailFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
+		detailFragment = (TimelineFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
 		
 		String sender = listFragment.getItem(0).sender;
 		
@@ -81,6 +85,27 @@ public class MainScreenActivity extends FragmentActivity {
 	      		detailFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,true);
 	      	  }
 	      	});
+		
+		listFragment.setNewContactListener(new View.OnClickListener() {
+            public void onClick(View v) {
+            	@SuppressWarnings("deprecation")
+				Intent intent = new Intent(Intent.ACTION_PICK, Contacts.Phones.CONTENT_URI);
+            	startActivityForResult(intent, PICK_CONTACT); 
+            }
+        });
+	}
+	
+	public void onActivityResult (int requestCode, int resultCode, Intent intent) 
+	{
+		if (resultCode != Activity.RESULT_OK || requestCode != PICK_CONTACT) return;
+		Cursor c = managedQuery(intent.getData(), null, null, null, null);
+		if (c.moveToFirst()) 
+		{
+		  String name  = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.DISPLAY_NAME));
+		  String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
+		 
+		  detailFragment.messageToNewContact(mMessages,name,phone,true);
+		}
 	}
 	
 	class ResponseReceiver extends BroadcastReceiver {

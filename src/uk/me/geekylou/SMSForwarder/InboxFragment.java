@@ -10,9 +10,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.view.LayoutInflater;
@@ -39,7 +41,7 @@ public class InboxFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
         Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.bluetooth_chooser, container, false);
+        return inflater.inflate(R.layout.inbox_fragment, container, false);
     }
 	
 	
@@ -108,5 +110,11 @@ public class InboxFragment extends Fragment {
 		   //String status = intent.getStringExtra("STATUS");
 	       //if (status != null) mStatusTextView.setText(status);
 	    }
+	}
+
+	public void setNewContactListener(OnClickListener onClickListener) {
+		// TODO Auto-generated method stub
+		Button button = (Button)getView().findViewById(R.id.buttonNewThread);
+		button.setOnClickListener(onClickListener);
 	}
 }
