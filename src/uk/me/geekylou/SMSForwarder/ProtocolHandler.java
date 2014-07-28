@@ -287,6 +287,7 @@ public class ProtocolHandler
     	case SMS_MESSAGE_TYPE_REQUEST:
 			{
 				Log.i("ProtocolHandler", "handleSMSMessage - SMS_MESSAGE_TYPE_REQUEST\n");
+				long requestDate = date.getTime();
 				String search[] = {sender};
 				String msgData = "";
 				if (!sender.equals(""))
@@ -301,11 +302,17 @@ public class ProtocolHandler
 				if (!cursor.moveToFirst())
 					break;
 				do{	
-					sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE,
+					long dateField = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+					
+					if (dateField >= requestDate)
+					{
+						sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE,
 								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
 								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
 								cursor.getString(cursor.getColumnIndexOrThrow("body")),
-								cursor.getLong(cursor.getColumnIndexOrThrow("date")));
+								dateField);
+					}
+					
 				}while(cursor.moveToNext());
 
 				sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST,"","",0);				
@@ -314,6 +321,7 @@ public class ProtocolHandler
     	case SMS_MESSAGE_TYPE_REQUEST_SENT:
 			{
 				Log.i("ProtocolHandler", "handleSMSMessage - SMS_MESSAGE_TYPE_REQUEST_SENT\n");
+				long requestDate = date.getTime();
 				String search[] = {sender};
 				String msgData = "";
 				if (!sender.equals(""))
@@ -328,18 +336,23 @@ public class ProtocolHandler
 				if (!cursor.moveToFirst())
 					break;
 				do{	
-					sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE_SENT,
+					long dateField = cursor.getLong(cursor.getColumnIndexOrThrow("date"));
+					
+					if (dateField >= requestDate)
+					{
+						sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE_SENT,
 								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
 								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
 								cursor.getString(cursor.getColumnIndexOrThrow("body")),
-								cursor.getLong(cursor.getColumnIndexOrThrow("date")));
+								dateField);
+					}
 				}while(cursor.moveToNext());
 				
 				sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST_SENT,"","",0);
 			}
     	}
     }
-	/* Overide this to handle button press events.*/
+	/* Override this to handle button press events.*/
     void handleButtonPress(int buttonID,int pageNo)
     {
     	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
