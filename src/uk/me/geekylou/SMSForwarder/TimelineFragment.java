@@ -46,11 +46,11 @@ public class TimelineFragment extends InboxFragment
 
             Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
             
-        	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x104);
+        	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x100);
         	
 			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
 
-			InboxEntry baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
+			//InboxEntry baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
 			InboxEntry entry     = new InboxEntry();
 			
 			entry.bitmap    = baseEntry.bitmap;
@@ -74,6 +74,26 @@ public class TimelineFragment extends InboxFragment
     	
     	baseEntry.sender = sender;
     	baseEntry.senderRaw = number;
+
+        TextView textViewSender = (TextView)getView().findViewById(R.id.textViewSender);
+        textViewSender.setText(sender);
+
+        Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
+        
+        ArrayAdapter<String> array = messages.getContactNos(sender);
+        
+        spinner.setAdapter(array);
+        
+        int count = array.getCount();
+                
+        for (int index=0;index<count;index++)
+        {
+        	if (PhoneNumberUtils.compare(array.getItem(index),baseEntry.senderRaw))
+        	{
+        		spinner.setSelection(index);
+        	}
+        }
+
     }
     
     void setMessageCache(MessageCache messages,String Sender,boolean threadView)
@@ -101,5 +121,4 @@ public class TimelineFragment extends InboxFragment
         	}
         }
     }
-    
 }

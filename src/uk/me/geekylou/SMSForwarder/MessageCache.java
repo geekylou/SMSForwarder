@@ -116,6 +116,17 @@ public class MessageCache extends SQLiteOpenHelper
 		db.delete(TABLE_NAME,"_id='"+entry.id+"'", null);
 	}
 	
+	public long getLatestMessageDate()
+	{
+	    Cursor cursor = getWritableDatabase().rawQuery("SELECT MAX(date) FROM "+TABLE_NAME, null);
+	    
+	    if (cursor.moveToNext())
+		{
+	    	return cursor.getLong(0);
+		}
+	    return 0;
+	}
+	
 	public ArrayAdapter<InboxEntry> getTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender,boolean threadView)
 	{
 		HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();

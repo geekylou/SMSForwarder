@@ -20,6 +20,7 @@ import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.FragmentActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -39,15 +40,12 @@ public class MainScreenActivity extends FragmentActivity {
 		setContentView(R.layout.main);
 		
 		mMessages        = new MessageCache(this);
-		mProtocolHandler = new CachingProtocolHandler(this,0x104,mMessages);
+		mProtocolHandler = new MainScreenProtocolHandler(this,0x104,mMessages);
 		
-		Intent intent = getIntent();
+		//Intent intent = getIntent();
 		
 		/* Start service with a request for the inbox on the peer.*/
-        Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
-		
-		String search = intent.getStringExtra("search");
-		if(search == null) search="";
+        //Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
 		
 		/* Start listening for replies before doing anything else.*/
 		IntentFilter filter = new IntentFilter(InterfaceBaseService.PACKET_RECEIVED);
@@ -55,13 +53,13 @@ public class MainScreenActivity extends FragmentActivity {
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
 		
-    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
+    	/*mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
     	/* cludge to make TCPIP Service work.*/
-    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
+    	/*mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
 	
- 		startService(bluetoothService);
+ 		startService(bluetoothService);*/
 		
- 		
+		mProtocolHandler.sendInboxRequest();
 	}
 	
 	protected void onResume()
@@ -73,9 +71,9 @@ public class MainScreenActivity extends FragmentActivity {
 
 		detailFragment = (TimelineFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
 		
-		String sender = listFragment.getItem(0).sender;
+		//String sender = listFragment.getItem(0).sender;
 		
-		detailFragment.setMessageCache(mMessages,sender,true);
+		//detailFragment.setMessageCache(mMessages,sender,true);
 
 		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
 
@@ -120,9 +118,22 @@ public class MainScreenActivity extends FragmentActivity {
 		   mProtocolHandler.decodePacket(intent.getByteArrayExtra("header"),intent.getByteArrayExtra("payload"));
 	   }
 	}
+	
+	class MainScreenProtocolHandler extends CachingProtocolHandler
+	{
+		MainScreenProtocolHandler(Context ctx, int sourceAddress, MessageCache messages) {
+			super(ctx, sourceAddress, messages);
+		}
+		
+		void updateFinished()
+		{
+			detailFragment.refreshEntries();
+			listFragment.refreshEntries();
+		}
+	}
 }
 
-class CachingProtocolHandler extends ProtocolHandler {
+abstract class CachingProtocolHandler extends ProtocolHandler {
 	static String[] mProjections = new String[] {
         ContactsContract.PhoneLookup.DISPLAY_NAME,
         ContactsContract.PhoneLookup._ID};
@@ -136,8 +147,24 @@ class CachingProtocolHandler extends ProtocolHandler {
 	}
 	
 	/* Called when all messages have been sent.*/
-	void updateFinished()
+	abstract void updateFinished();
+	//{
+	//	
+	//}
+	
+	void sendInboxRequest()
 	{
+		long latestMessageDate = mMessages.getLatestMessageDate();
+		Log.d("SMSForwarder", "CachingProtocolHandler latestMessageDate(" + latestMessageDate + ") ");
+
+		/* Start service with a request for the inbox on the peer.*/
+        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
+        
+    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+    	/* Kludge to make TCPIP Service work.*/
+    	sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+	
+ 		ctx.startService(bluetoothService);
 		
 	}
 	
@@ -189,13 +216,10 @@ class CachingProtocolHandler extends ProtocolHandler {
         	mMessages.insertEntry(entry);
             break;
     	case SMS_MESSAGE_TYPE_DONE:
-    		if(id == SMS_MESSAGE_TYPE_REQUEST)
+			updateFinished();
+
+			if(id == SMS_MESSAGE_TYPE_REQUEST)
     			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,"","",0);
-    		else if(id == SMS_MESSAGE_TYPE_REQUEST_SENT)
-    		{
-    			updateFinished();
-    			
-    		}
     	}
 	}
 }
