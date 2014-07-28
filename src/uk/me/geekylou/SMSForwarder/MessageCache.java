@@ -10,6 +10,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.widget.ArrayAdapter;
 import android.net.Uri;
@@ -116,20 +117,19 @@ public class MessageCache extends SQLiteOpenHelper
 	
 	public ArrayAdapter<InboxEntry> getTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender,boolean threadView)
 	{
-		HashMap<String,InboxEntry> mHashmap;
+		HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();
 		SQLiteDatabase db = getWritableDatabase();
-		
+		Bitmap bitmap = null;
 		Cursor c;
 		String args[] = new String[]{sender};
+		Bitmap defaultBitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
 		
 		if (sender == null)
 		{
-			mHashmap = new HashMap<String,InboxEntry>();
 			c = db.rawQuery("SELECT * FROM entries ORDER BY date DESC", null);
 		}
 		else
 		{
-			mHashmap = null;
 			threadView = false; /* Thread view makes no sense for a single contact.*/
 			c = db.rawQuery("SELECT * FROM entries WHERE sender=? ORDER BY date DESC", args);
 		}
@@ -148,30 +148,41 @@ public class MessageCache extends SQLiteOpenHelper
 
 			//Log.d("SMSForwarder", "MessageCache " + c.getLong(c.getColumnIndex("date")));
 
-			
-        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
-
-        	// query contact.
-        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
-
-        	if (cursor.moveToFirst()) 
-        	{
-            	do{	
-	        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
-
-	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
-	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
-	        		
-	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
-
-				}while(cursor.moveToNext() && entry.bitmap == null);
-        	}
-    		cursor.close();
+			if (mHashmap.containsKey(entry.senderRaw))
+			{
+				InboxEntry baseEntry = mHashmap.get(entry.senderRaw);
+				
+				entry.bitmap = baseEntry.bitmap;
+			}
+			else
+			{
+	        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
+	
+	        	// query contact.
+	        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+	
+	        	if (cursor.moveToFirst()) 
+	        	{
+	            	do{	
+		        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+	
+		        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+		        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+		        		
+		        		if (threadView || bitmap == null)
+		        			entry.bitmap = bitmap = BitmapFactory.decodeStream(bitmapStream);
+		        		else
+		        			entry.bitmap = bitmap;
+		        		
+					}while(cursor.moveToNext() && entry.bitmap == null);
+	        	}
+	    		cursor.close();
+			}
     		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
         	 * message.*/
-			
+    		
         	if (entry.bitmap == null)
-        		entry.bitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
+        		entry.bitmap = defaultBitmap;
 
 			if (threadView)
     		{
@@ -182,7 +193,13 @@ public class MessageCache extends SQLiteOpenHelper
     			}
     		}
     		else
+    		{
+    			if (!mHashmap.containsKey(entry.senderRaw))
+    			{
+    				mHashmap.put(entry.senderRaw, entry);
+    			}
     			mTimelineArrayAdapter.add(entry);
+    		}
 		}
 		db.close();
 		

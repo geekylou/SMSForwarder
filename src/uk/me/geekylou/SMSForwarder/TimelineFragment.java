@@ -41,6 +41,18 @@ public class TimelineFragment extends InboxFragment
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x104);
 			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, getItem(0).senderRaw,  message,new Date().getTime());
 
+			InboxEntry baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
+			InboxEntry entry     = new InboxEntry();
+			
+			entry.bitmap    = baseEntry.bitmap;
+			entry.date      = new Date();
+			entry.cacheId   = -1;
+			entry.id        = -1;
+			entry.message   = message;
+			entry.sender    = baseEntry.sender;
+			entry.senderRaw = baseEntry.senderRaw;
+			entry.type      = ProtocolHandler.SMS_MESSAGE_TYPE_RESPONSE_SENT;
+			mInboxEntriesAdapter.insert(entry, 0);
             }
         });
     }

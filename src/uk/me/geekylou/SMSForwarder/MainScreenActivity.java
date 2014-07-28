@@ -102,7 +102,8 @@ class CachingProtocolHandler extends ProtocolHandler {
         ContactsContract.PhoneLookup.DISPLAY_NAME,
         ContactsContract.PhoneLookup._ID};
 	private MessageCache mMessages;
-	
+	HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();
+
 	CachingProtocolHandler(Context ctx, int sourceAddress,MessageCache messages) {
 		super(ctx, sourceAddress);
 		mMessages = messages;
@@ -130,32 +131,28 @@ class CachingProtocolHandler extends ProtocolHandler {
     		InboxEntry entry = new InboxEntry();
     		
     		String senderRaw = sender;
-    		
-        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
 
-        	// query contact.
-        	cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
-
-        	if (cursor.moveToFirst()) 
-        	{
-        		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
-        			            	
-            	do{	
-	        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
-
-	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
-	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
-	        		
-	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
-
-				}while(cursor.moveToNext() && entry.bitmap == null);
-        	}
-    		cursor.close();
-    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
-        	 * message.*/
-
-        	if (entry.bitmap == null)
-        		entry.bitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
+        	if (mHashmap.containsKey(entry.senderRaw))
+			{
+				InboxEntry baseEntry = mHashmap.get(entry.senderRaw);
+				
+				sender = baseEntry.sender;
+			}
+			else
+			{
+	        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
+	
+	        	// query contact.
+	        	cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+	
+	        	if (cursor.moveToFirst()) 
+	        	{
+	        		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
+	        	}
+	    		cursor.close();
+	    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+	        	 * message.*/
+			}
 
         	entry.type      = type;
         	entry.sender    = sender;
@@ -165,8 +162,6 @@ class CachingProtocolHandler extends ProtocolHandler {
         	entry.date      = date;
 
         	mMessages.insertEntry(entry);
-        	
-            cursor.close();
             break;
     	case SMS_MESSAGE_TYPE_DONE:
     		if(id == SMS_MESSAGE_TYPE_REQUEST)

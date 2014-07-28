@@ -28,7 +28,7 @@ public class InboxFragment extends Fragment {
 	private MessageCache mMessages;
 	private ResponseReceiver mResponseReceiver;
 	private boolean mThreadView;
-	private ArrayAdapter<InboxEntry> mInboxEntriesAdapter;
+	ArrayAdapter<InboxEntry> mInboxEntriesAdapter;
 	
 	public InboxFragment()
 	{
