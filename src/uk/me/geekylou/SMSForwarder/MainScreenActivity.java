@@ -69,7 +69,7 @@ public class MainScreenActivity extends FragmentActivity {
 
 		detailFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
 		
-		String sender = listFragment.getItem(0).sender + listFragment.getItem(0).senderRaw;
+		String sender = listFragment.getItem(0).sender;
 		
 		detailFragment.setMessageCache(mMessages,sender,true);
 

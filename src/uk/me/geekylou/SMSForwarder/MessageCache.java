@@ -28,6 +28,7 @@ public class MessageCache extends SQLiteOpenHelper
 
 	static String[] mProjections = new String[] {
         ContactsContract.PhoneLookup.DISPLAY_NAME,
+        ContactsContract.PhoneLookup.NUMBER,
         ContactsContract.PhoneLookup._ID};
 
 	MessageCache(Context context) {
@@ -204,6 +205,28 @@ public class MessageCache extends SQLiteOpenHelper
 		db.close();
 		
 		return mTimelineArrayAdapter;
+	}
+	
+	public ArrayAdapter<String> getContactNos(String sender)
+	{
+		ArrayAdapter<String> array = new ArrayAdapter<String>(ctx, R.layout.itemb);
+		String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
+		
+		String args[] = new String[] {sender};
+		String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" like'%" + sender +"%'";
+		Cursor cursor = ctx.getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+		        projection, selection, null, null);
+		
+    	if (cursor.moveToFirst()) 
+    	{
+        	do{	
+        	    array.add(cursor.getString(0));
+        		
+			}while(cursor.moveToNext());
+        	return array;
+    	}
+    	array.add(sender);
+    	return array;
 	}
 	
 	/* Debug function to dump the contents of the database to a file. */

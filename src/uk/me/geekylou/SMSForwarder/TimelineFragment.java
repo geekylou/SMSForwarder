@@ -5,11 +5,14 @@ import java.util.Date;
 import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
+import android.telephony.PhoneNumberUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 public class TimelineFragment extends InboxFragment
@@ -63,6 +66,22 @@ public class TimelineFragment extends InboxFragment
     	
         TextView textViewSender = (TextView)getView().findViewById(R.id.textViewSender);
         textViewSender.setText(Sender);
+        
+        Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
+        
+        ArrayAdapter<String> array = messages.getContactNos(Sender);
+        
+        spinner.setAdapter(array);
+        
+        int count = array.getCount();
+        
+        for (int index=0;index<count;index++)
+        {
+        	if (PhoneNumberUtils.compare(array.getItem(index),getItem(0).senderRaw))
+        	{
+        		spinner.setSelection(index);
+        	}
+        }
     }
     
 }
