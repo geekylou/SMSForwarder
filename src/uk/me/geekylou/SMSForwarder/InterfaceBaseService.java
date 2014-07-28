@@ -131,7 +131,7 @@ abstract class InterfaceBaseService extends Service
     	String msg = "";
     	DataOutputStream out = null;
     	DataInputStream  in;
-    	ProtocolHandler  handler = new ProtocolHandler(InterfaceBaseService.this,0x104);; 
+    	ProtocolHandler  handler = new ServiceProtocolHandler(InterfaceBaseService.this,0x104);; 
     	LinkedList<PacketQueueItem> mPacketQueue = new LinkedList<PacketQueueItem>();
     	
     	int running = 0; // Set to true before starting the thread and false when stopping the thread.
@@ -148,6 +148,8 @@ abstract class InterfaceBaseService extends Service
     	public void run()
     	{
     		mOutputThread = new OutputThread();
+			mOutputThread.start();
+
     		if (server)
     		{    			
     			try 
@@ -168,6 +170,11 @@ abstract class InterfaceBaseService extends Service
     				acceptConnection(server);
     				
     				if (running != THREAD_RUNNING) break;
+
+    				synchronized(mOutputThread.waitObj)
+    				{
+    					mOutputThread.waitObj.notify();
+    				}
     				
     				handleConnection();
 
@@ -211,8 +218,6 @@ abstract class InterfaceBaseService extends Service
     		{
     		isOpen = true;
     		}
-
-			mOutputThread.start();
 
     		while(running == THREAD_RUNNING)
     		{
@@ -274,13 +279,15 @@ abstract class InterfaceBaseService extends Service
     				PacketQueueItem item;
     				synchronized(mPacketQueue)
     				{
+    					if(isOpen)
     					try {
     						
     						while(!mPacketQueue.isEmpty())
     						{
     							Log.i("BluetoothInterfaceService", "in.write "+server);
     							item = mPacketQueue.removeFirst();
-    						//Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffe);
+    							
+    							//Log.i("BluetoothInterfaceService", "in.write "+item.packetBuffer);
     							
     							out.write(item.packetBuffer);
     						}
@@ -380,7 +387,7 @@ abstract class InterfaceBaseService extends Service
 		SMSResponseReceiver()
 		{
 			super();
-			mProtocolHandler = new ProtocolHandler(InterfaceBaseService.this,0x104);
+			mProtocolHandler = new ServiceProtocolHandler(InterfaceBaseService.this,0x104);
 
 		}
 	   @Override

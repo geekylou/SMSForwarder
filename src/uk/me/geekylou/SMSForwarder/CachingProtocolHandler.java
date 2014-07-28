@@ -16,7 +16,6 @@ abstract public class CachingProtocolHandler extends ProtocolHandler {
         ContactsContract.PhoneLookup.DISPLAY_NAME,
         ContactsContract.PhoneLookup._ID};
 	private MessageCache mMessages;
-	HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();
 
 	CachingProtocolHandler(Context ctx, int sourceAddress,MessageCache messages) {
 		super(ctx, sourceAddress);
