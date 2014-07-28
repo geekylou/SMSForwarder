@@ -1,33 +1,47 @@
 package uk.me.geekylou.SMSForwarder;
 
-import java.io.IOException;
+import java.io.InputStream;
 import java.util.Date;
+import java.util.HashMap;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.BitmapFactory;
 import android.widget.ArrayAdapter;
+import android.net.Uri;
+import android.provider.ContactsContract;
+import android.provider.ContactsContract.PhoneLookup;
 import android.util.Log;
 
 public class MessageCache extends SQLiteOpenHelper 
 {
-    private static final int DATABASE_VERSION = 2;
-	private static final String DATABASE_NAME = "timeline.db";
+	private Context ctx;
+    private static final int DATABASE_VERSION = 1;
+	private static final String DATABASE_NAME = "message_cache.db";
 	
 	private static final String TABLE_NAME = "entries";
 
+	static String[] mProjections = new String[] {
+        ContactsContract.PhoneLookup.DISPLAY_NAME,
+        ContactsContract.PhoneLookup._ID};
+
 	MessageCache(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+		ctx = context;
     }
 
 	public void onCreate(SQLiteDatabase db) {
 		
 		db.execSQL("CREATE TABLE " + TABLE_NAME + " ("+
-                "_id PRIMARY KEY," +
+                "_id INTEGER PRIMARY KEY," +
+				"originalID INTEGER," +
 				"type INTEGER," +
-				"sender CHAR(40)" +
+				"sender CHAR(40)," +
+				"senderRaw CHAR(40)," +
                 "message TEXT," +
                 "date INTEGER);");
     }
@@ -39,21 +53,38 @@ public class MessageCache extends SQLiteOpenHelper
 		
 	}
 	
-	public void insertEntry(InboxEntry entry)
+	public long insertEntry(InboxEntry entry)
 	{
+		long returnValue = -1;
 		SQLiteDatabase db = getWritableDatabase();
 		
 		/* Store timeline entry. */
 		ContentValues values = new ContentValues();
 		
-		values.put("_id", entry.id);
+		values.put("originalID", entry.id);
 		values.put("type", entry.type);
 		values.put("sender", entry.sender);
+		values.put("senderRaw", entry.senderRaw);
 		values.put("message",entry.message);
 		values.put("date", entry.date.getTime());
-		db.insert("entries", null, values);
-			
+		
+		String[] searchValues = new String[] {
+		        Integer.toString(entry.id),
+		        Integer.toString(entry.type)};
+		
+		Cursor c = db.rawQuery("SELECT * FROM entries WHERE originalID=? and type=?", searchValues);
+		
+		if(!c.moveToNext())
+		{
+			returnValue = db.insert(TABLE_NAME, null, values);
+			//Log.d("SMSForwarder", "MessageCache insertEntry(" + returnValue + ") "+entry.message);
+		}
+		
 		db.close();
+
+//		Log.d("SMSForwarder", "MessageCache insertEntry(" + returnValue + ") "+entry.message);
+		
+		return returnValue;
 	}
 	
 	/*
@@ -80,35 +111,78 @@ public class MessageCache extends SQLiteOpenHelper
 	{
 		SQLiteDatabase db = getWritableDatabase();
 
-		db.delete("entries","_id='"+entry.id+"'", null);
+		db.delete(TABLE_NAME,"_id='"+entry.id+"'", null);
 	}
 	
-	public ArrayAdapter<InboxEntry> GetTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender)
+	public ArrayAdapter<InboxEntry> GetTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender,boolean threadView)
 	{
+		HashMap<String,InboxEntry> mHashmap;
 		SQLiteDatabase db = getWritableDatabase();
 		
 		Cursor c;
-		String args[];
-				
-		c = db.rawQuery("SELECT * FROM entries", null);
+		String args[] = new String[]{sender};
 		
+		if (sender == null)
+		{
+			mHashmap = new HashMap<String,InboxEntry>();
+			c = db.rawQuery("SELECT * FROM entries ORDER BY date DESC", null);
+		}
+		else
+		{
+			mHashmap = null;
+			threadView = false; /* Thread view makes no sense for a single contact.*/
+			c = db.rawQuery("SELECT * FROM entries WHERE sender=? ORDER BY date DESC", args);
+		}
+			
 		while (c.moveToNext())
 		{
-			String json = c.getString(c.getColumnIndex("json"));
-			
-			Log.d("BlobFreeformMicroblogActivity", "TimelineStorageHelper.GetTimeline " + json);
-
 			boolean addEntry = true;
 			InboxEntry entry = new InboxEntry();
 			entry.id   = c.getInt(c.getColumnIndex("_id"));
+			entry.type = c.getInt(c.getColumnIndex("type"));
 			entry.date = new Date(c.getLong(c.getColumnIndex("date")));
 
-			entry.sender = c.getString(c.getColumnIndex("sender"));
-			entry.message = c.getString(c.getColumnIndex("message"));
+			entry.sender    = c.getString(c.getColumnIndex("sender"));
+			entry.senderRaw = c.getString(c.getColumnIndex("senderRaw"));
+			entry.message   = c.getString(c.getColumnIndex("message"));
 
-			Log.d("SMSForwarder", "MessageCache " + c.getLong(c.getColumnIndex("date")));
+			//Log.d("SMSForwarder", "MessageCache " + c.getLong(c.getColumnIndex("date")));
+
+			/*
+        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
+
+        	// query contact.
+        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+
+        	if (cursor.moveToFirst()) 
+        	{
+            	do{	
+	        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+
+	        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+	        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+	        		
+	            	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
+
+				}while(cursor.moveToNext() && entry.bitmap == null);
+        	}
+    		cursor.close();
+    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+        	 * message.*/
 			
-			mTimelineArrayAdapter.add(entry);
+        	/*if (entry.bitmap == null)
+        		entry.bitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);*/
+
+			if (threadView)
+    		{
+    			if (!mHashmap.containsKey(entry.senderRaw))
+    			{
+    				mHashmap.put(entry.senderRaw, entry);
+    				mTimelineArrayAdapter.add(entry);
+    			}
+    		}
+    		else
+    			mTimelineArrayAdapter.add(entry);
 		}
 		db.close();
 		
@@ -186,3 +260,92 @@ public class MessageCache extends SQLiteOpenHelper
 	}
 	*/
 }
+
+
+
+
+
+
+
+
+
+
+/*
+InboxEntry entry = new InboxEntry();
+
+Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
+
+// query time
+cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+
+if (cursor.moveToFirst()) 
+{
+	sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
+		            	
+	do{	
+	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+
+	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+		
+    	entry.bitmap = BitmapFactory.decodeStream(bitmapStream);
+
+	}while(cursor.moveToNext() && entry.bitmap == null);
+}
+
+/*
+cursor.close();
+/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+ * message.
+
+if (threadView)
+{
+	if (mHashmap.containsKey(sender))
+	{
+		InboxEntry entryToCheck = mHashmap.get(sender);
+		
+		if (entryToCheck.date.getTime() < date.getTime())
+			entry = entryToCheck;
+		else
+			break;        				
+	}
+}
+
+if (entry.bitmap == null)
+	entry.bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
+
+entry.type    = type;
+entry.sender = sender;
+entry.message = message;
+entry.id      = id;
+entry.date    = date;
+
+if (addToTop)
+{
+	if (threadView)
+		mBluetoothDeviceArrayAdapter.remove(entry);	        		
+
+	if (mSender == null || mSender.equals(sender))
+		mBluetoothDeviceArrayAdapter.insert(entry, 0);	        		
+}
+else
+{
+	if (threadView)
+	{
+		if (!mHashmap.containsKey(sender))
+		{
+			mHashmap.put(sender, entry);
+			mBluetoothDeviceArrayAdapter.add(entry);
+		}
+		else
+		{
+			mBluetoothDeviceArrayAdapter.notifyDataSetChanged();
+		}
+	}
+	else 
+	{
+		if (mSender == null || mSender.equals(sender))
+			mBluetoothDeviceArrayAdapter.add(entry);
+	}
+}
+*/

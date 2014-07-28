@@ -6,9 +6,10 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 
 public class InboxEntry {
-	public String sender,message;
+	public String sender,senderRaw,message;
 	public Bitmap bitmap;
 	public int    id;
+	public int    cacheId;
 	public Date   date;
 	public int type;
 	
