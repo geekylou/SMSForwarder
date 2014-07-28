@@ -237,15 +237,16 @@ abstract class InterfaceBaseService extends Service
     				
     				//Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
     				
-    				handler.decodePacket(header, payload);
-    				
-        			// processing done here¦.
-        			Intent broadcastIntent = new Intent();
-        			broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
-        			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-        			broadcastIntent.putExtra("header", header);
-        			broadcastIntent.putExtra("payload", payload);
-        			sendBroadcast(broadcastIntent);
+    				if (!handler.decodePacket(header, payload))
+    				{
+    					// processing done here¦.
+    					Intent broadcastIntent = new Intent();
+    					broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
+    					broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+    					broadcastIntent.putExtra("header", header);
+    					broadcastIntent.putExtra("payload", payload);
+    					sendBroadcast(broadcastIntent);
+    				}
     			}
     		}
     		synchronized(this) 

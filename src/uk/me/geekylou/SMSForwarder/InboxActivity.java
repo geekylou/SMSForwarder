@@ -117,7 +117,7 @@ public class InboxActivity extends Activity {
 			// TODO Auto-generated constructor stub
 		}
     	
-	    void handleSMSMessage(int type,int id,String sender, String message,Date date) 
+	    boolean handleSMSMessage(int type,int id,String sender, String message,Date date) 
 	    {
 	    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
 	    
@@ -206,6 +206,7 @@ public class InboxActivity extends Activity {
 	    		if(id == SMS_MESSAGE_TYPE_REQUEST)
 	    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,search,"",0);
 	    	}
+	    	return false;
     	}
 
 	    

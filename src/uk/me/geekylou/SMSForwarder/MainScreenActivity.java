@@ -61,6 +61,12 @@ public class MainScreenActivity extends FragmentActivity {
 		
 		mProtocolHandler.sendInboxRequest();
 	}
+
+	protected void onDestroy()
+	{
+		super.onDestroy();
+		unregisterReceiver(receiver);
+	}
 	
 	protected void onResume()
 	{
@@ -130,96 +136,5 @@ public class MainScreenActivity extends FragmentActivity {
 			detailFragment.refreshEntries();
 			listFragment.refreshEntries();
 		}
-	}
-}
-
-abstract class CachingProtocolHandler extends ProtocolHandler {
-	static String[] mProjections = new String[] {
-        ContactsContract.PhoneLookup.DISPLAY_NAME,
-        ContactsContract.PhoneLookup._ID};
-	private MessageCache mMessages;
-	HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();
-
-	CachingProtocolHandler(Context ctx, int sourceAddress,MessageCache messages) {
-		super(ctx, sourceAddress);
-		mMessages = messages;
-		// TODO Auto-generated constructor stub
-	}
-	
-	/* Called when all messages have been sent.*/
-	abstract void updateFinished();
-	//{
-	//	
-	//}
-	
-	void sendInboxRequest()
-	{
-		long latestMessageDate = mMessages.getLatestMessageDate();
-		Log.d("SMSForwarder", "CachingProtocolHandler latestMessageDate(" + latestMessageDate + ") ");
-
-		/* Start service with a request for the inbox on the peer.*/
-        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-        
-    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
-    	/* Kludge to make TCPIP Service work.*/
-    	sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
-	
- 		ctx.startService(bluetoothService);
-		
-	}
-	
-    void handleSMSMessage(int type,int id,String sender, String message,Date date) 
-    {
-    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
-    
-    	Cursor cursor;
-    	
-    	switch(type)
-    	{
-    	case SMS_MESSAGE_TYPE_NOTIFICATION:
-    		break;
-    	case SMS_MESSAGE_TYPE_RESPONSE:
-    	case SMS_MESSAGE_TYPE_RESPONSE_SENT:
-    		InboxEntry entry = new InboxEntry();
-    		
-    		String senderRaw = sender;
-
-        	if (mHashmap.containsKey(entry.senderRaw))
-			{
-				InboxEntry baseEntry = mHashmap.get(entry.senderRaw);
-				
-				sender = baseEntry.sender;
-			}
-			else
-			{
-	        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(sender));
-	
-	        	// query contact.
-	        	cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
-	
-	        	if (cursor.moveToFirst()) 
-	        	{
-	        		sender = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
-	        	}
-	    		cursor.close();
-	    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
-	        	 * message.*/
-			}
-
-        	entry.type      = type;
-        	entry.sender    = sender;
-        	entry.senderRaw = senderRaw;
-        	entry.message   = message;
-        	entry.id        = id;
-        	entry.date      = date;
-
-        	mMessages.insertEntry(entry);
-            break;
-    	case SMS_MESSAGE_TYPE_DONE:
-			updateFinished();
-
-			if(id == SMS_MESSAGE_TYPE_REQUEST)
-    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,"","",0);
-    	}
 	}
 }
