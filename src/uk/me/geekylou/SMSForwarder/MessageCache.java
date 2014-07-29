@@ -160,9 +160,9 @@ public class MessageCache extends SQLiteOpenHelper
 
 			//Log.d("SMSForwarder", "MessageCache " + c.getLong(c.getColumnIndex("date")));
 
-			if (mHashmap.containsKey(entry.senderRaw))
+			if (mHashmap.containsKey(entry.sender))
 			{
-				InboxEntry baseEntry = mHashmap.get(entry.senderRaw);
+				InboxEntry baseEntry = mHashmap.get(entry.sender);
 				
 				entry.bitmap = baseEntry.bitmap;
 			}
@@ -198,17 +198,17 @@ public class MessageCache extends SQLiteOpenHelper
 
 			if (threadView)
     		{
-    			if (!mHashmap.containsKey(entry.senderRaw))
+    			if (!mHashmap.containsKey(entry.sender))
     			{
-    				mHashmap.put(entry.senderRaw, entry);
+    				mHashmap.put(entry.sender, entry);
     				mTimelineArrayAdapter.add(entry);
     			}
     		}
     		else
     		{
-    			if (!mHashmap.containsKey(entry.senderRaw))
+    			if (!mHashmap.containsKey(entry.sender))
     			{
-    				mHashmap.put(entry.senderRaw, entry);
+    				mHashmap.put(entry.sender, entry);
     			}
     			mTimelineArrayAdapter.add(entry);
     		}
