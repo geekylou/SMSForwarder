@@ -46,6 +46,8 @@
         android:id="@+id/textViewSender"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_alignBottom="@+id/spinner1"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
         android:text="Sender"

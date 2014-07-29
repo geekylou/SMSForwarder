@@ -77,7 +77,11 @@ public class InboxFragment extends Fragment {
     	mSender     = Sender;
     	mMessages   = messages;
     	
-    	refreshEntries();
+    	Activity ctx = getActivity();
+
+    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, R.layout.text_preview_item), mSender,threadView);
+	
+		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
     }
     
     void setOnClickListener(AdapterView.OnItemClickListener onClickListener)
@@ -87,7 +91,14 @@ public class InboxFragment extends Fragment {
     
     InboxEntry getItem(int position)
     {
-    	return mInboxEntriesAdapter.getItem(position);
+    	if (mInboxEntriesAdapter.getCount() > 0)
+    	{
+    		return mInboxEntriesAdapter.getItem(position);
+    	}
+    	else
+    	{
+    		return null;
+    	}
     }
     
     void refreshEntries()

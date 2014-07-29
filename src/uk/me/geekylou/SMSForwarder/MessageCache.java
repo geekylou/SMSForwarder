@@ -218,6 +218,34 @@ public class MessageCache extends SQLiteOpenHelper
 		return mTimelineArrayAdapter;
 	}
 	
+	public Bitmap getContactBitmap(InboxEntry entry)
+	{
+		Bitmap bitmap = null;
+		
+		Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
+		
+		// query contact.
+		Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+	
+		if (cursor.moveToFirst()) 
+		{
+	    	do{	
+	    	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+	
+	    	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+	    		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+	    		
+	    		bitmap = BitmapFactory.decodeStream(bitmapStream);
+	    		
+			}while(cursor.moveToNext() && bitmap == null);
+		}
+		cursor.close();
+		
+		if (bitmap == null)
+			return BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
+		return bitmap;
+	}
+
 	public ArrayAdapter<String> getContactNos(String sender)
 	{
 		ArrayAdapter<String> array = new ArrayAdapter<String>(ctx, R.layout.itemb);

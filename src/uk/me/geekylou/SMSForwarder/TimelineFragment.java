@@ -4,6 +4,7 @@ import java.util.Date;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.Intent;
 import android.os.Bundle;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
@@ -48,9 +49,21 @@ public class TimelineFragment extends InboxFragment
             
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x100);
         	
-			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
+        	String key = "uk.me.geekylou.SMSForwarder.TimeLineFragment";
+        	Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
+	        bluetoothService.putExtra("openKey",key);
+	        
+	    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
+//			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
 
-			//InboxEntry baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
+	    	ctx.startService(bluetoothService);
+	    	
+	    	Intent broadcastIntent = new Intent();
+			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+			broadcastIntent.putExtra("closeKey", key);
+			ctx.sendBroadcast(broadcastIntent);
+	    	
 			InboxEntry entry     = new InboxEntry();
 			
 			entry.bitmap    = baseEntry.bitmap;
@@ -59,7 +72,7 @@ public class TimelineFragment extends InboxFragment
 			entry.id        = -1;
 			entry.message   = message;
 			entry.sender    = baseEntry.sender;
-			entry.senderRaw = baseEntry.senderRaw;
+			entry.senderRaw = (String) spinner.getSelectedItem();
 			entry.type      = ProtocolHandler.SMS_MESSAGE_TYPE_RESPONSE_SENT;
 			mInboxEntriesAdapter.insert(entry, 0);
             }
@@ -70,11 +83,12 @@ public class TimelineFragment extends InboxFragment
     {
     	super.setMessageCache(messages, sender, threadView);
 
-    	InboxEntry baseEntry = new InboxEntry();
+    	baseEntry = new InboxEntry();
     	
-    	baseEntry.sender = sender;
+    	baseEntry.sender    = sender;
     	baseEntry.senderRaw = number;
-
+    	baseEntry.bitmap    = messages.getContactBitmap(baseEntry);
+    	
         TextView textViewSender = (TextView)getView().findViewById(R.id.textViewSender);
         textViewSender.setText(sender);
 
@@ -93,32 +107,38 @@ public class TimelineFragment extends InboxFragment
         		spinner.setSelection(index);
         	}
         }
-
     }
     
     void setMessageCache(MessageCache messages,String Sender,boolean threadView)
     {
     	super.setMessageCache(messages, Sender, threadView);
     	
-        TextView textViewSender = (TextView)getView().findViewById(R.id.textViewSender);
-        textViewSender.setText(Sender);
-        
-        Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
-        
-        ArrayAdapter<String> array = messages.getContactNos(Sender);
-        
-        spinner.setAdapter(array);
-        
-        int count = array.getCount();
-        
-		baseEntry = getItem(0); /* TODO this is a horrible hack and currently ignores the spinner entry. */
-        
-        for (int index=0;index<count;index++)
-        {
-        	if (PhoneNumberUtils.compare(array.getItem(index),baseEntry.senderRaw))
-        	{
-        		spinner.setSelection(index);
-        	}
-        }
+    	if (Sender != null)
+    	{
+	        TextView textViewSender = (TextView)getView().findViewById(R.id.textViewSender);
+	        textViewSender.setText(Sender);
+	        
+	        Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
+	        
+	        ArrayAdapter<String> array = messages.getContactNos(Sender);
+	        
+	        spinner.setAdapter(array);
+	        
+	        int count = array.getCount();
+	        
+			InboxEntry entry = getItem(0);
+			if (entry != null)
+			{
+				baseEntry = entry;
+			}
+	        
+	        for (int index=0;index<count;index++)
+	        {
+	        	if (PhoneNumberUtils.compare(array.getItem(index),baseEntry.senderRaw))
+	        	{
+	        		spinner.setSelection(index);
+	        	}
+	        }
+	    }
     }
 }

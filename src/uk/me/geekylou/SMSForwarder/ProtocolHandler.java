@@ -5,28 +5,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Date;
-import java.util.HashMap;
-
-import uk.me.geekylou.SMSForwarder.R;
-
-import android.app.NotificationManager;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.net.Uri;
-import android.provider.ContactsContract;
-import android.provider.ContactsContract.PhoneLookup;
-import android.support.v4.app.NotificationCompat;
-import android.telephony.SmsManager;
 import android.util.Log;
-import android.widget.TextView;
 
 public class ProtocolHandler 
 {

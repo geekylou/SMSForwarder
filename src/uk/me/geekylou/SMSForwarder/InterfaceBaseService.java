@@ -52,22 +52,6 @@ abstract class InterfaceBaseService extends Service
 	public static final int CONNECTION_STATUS_CONNECTING             = 2;
 	public static final int CONNECTION_STATUS_CONNECTED 			 = 3;
 	
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-    	
-    	/* If we set closeKey then this will prevent other callers from shutting down the connection until we shutdown the connection ourselves
-    	 * with a call containing the close key.
-    	 */
-    	String closeKey = intent.getStringExtra("closeKey");
-    	
-    	if (closeKey != null)
-    	{
-    		connectionLocks.put(closeKey, closeKey);
-    	}
-        return START_STICKY;
-        		
-    }
-	
 	void initListeners(Context context, Intent intent)
 	{
 		// Register intents for both IPC from other Activity to activity on other host and system events
@@ -131,7 +115,7 @@ abstract class InterfaceBaseService extends Service
     	String msg = "";
     	DataOutputStream out = null;
     	DataInputStream  in;
-    	ProtocolHandler  handler = new ServiceProtocolHandler(InterfaceBaseService.this,0x104);; 
+    	ProtocolHandler  handler = new ServiceProtocolHandler(InterfaceBaseService.this,0x104); 
     	LinkedList<PacketQueueItem> mPacketQueue = new LinkedList<PacketQueueItem>();
     	
     	int running = 0; // Set to true before starting the thread and false when stopping the thread.
@@ -198,6 +182,7 @@ abstract class InterfaceBaseService extends Service
 
         		out = null;
     		}
+    		Log.i("BluetoothInterfaceService", "stopped!!!!!!!");
     		synchronized(this)
     		{
     			if (mOutputThread != null)
@@ -208,6 +193,8 @@ abstract class InterfaceBaseService extends Service
     			}
     			mOutputThread = null;
     		}
+    		Log.i("BluetoothInterfaceService", "stopped done");
+
     	}
     	
     	void handleConnection() throws IOException
@@ -230,7 +217,7 @@ abstract class InterfaceBaseService extends Service
     			
     			if(!isConnected())
     			{
-    				break;
+    			break;
     			}
     			
     			if (length > 0 && length < 65536)
@@ -311,6 +298,7 @@ abstract class InterfaceBaseService extends Service
     				
     				if (status == THREAD_STOP_DEFERRED)
     				{
+						Log.i("BluetoothInterfaceService", "THREAD_STOP_DEFERRED");
     					stopRunning();
     				}
     			}
@@ -335,25 +323,28 @@ abstract class InterfaceBaseService extends Service
     			try {
     				join(10000);
     			} catch (InterruptedException e) {
+    	    		Log.i("InterfaceBaseClass","stopRunning EXCEPTION interrupted.");
     				e.printStackTrace();
     			}
             } catch(IOException e) 
             	{
+            		Log.i("InterfaceBaseClass","stopRunning EXCEPTION IOException.");
             		e.printStackTrace();
             	}
-    		statusUpdate("Service stopped.", 0);
+    		statusUpdate("Connection closed.", 0);
+    		Log.i("InterfaceBaseClass","stopRunning=" + isAlive());
     	}
     	
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
-    	void startRunning(boolean mServer)
+    	/*void startRunning(boolean mServer)
     	{
-    		if(running == THREAD_STOPPED)
+    		if(_running == THREAD_STOPPED)
     		{
     			this.server = mServer;
-    			running = THREAD_RUNNING;
+    			_running = THREAD_RUNNING;
     			start();
     		}
-    	}
+    	}*/
     	
     	boolean sendPacket(byte[] packetData,boolean buffer)
     	{
@@ -523,15 +514,6 @@ abstract class InterfaceBaseService extends Service
 	    public void onReceive(Context context, Intent intent) 
 	   	{
 		   try {
-		   String closeKey = intent.getStringExtra("closeKey");
-		   if (closeKey != null)
-		   {
-			   connectionLocks.remove(closeKey);
-			   if (connectionLocks.isEmpty())
-			   {
-				   mSocketThread.stopRunning();
-			   }
-		   }
 		   if (intent.getBooleanExtra("requestStatus", false))
 		   {
 				Intent broadcastIntent = new Intent();
@@ -543,14 +525,27 @@ abstract class InterfaceBaseService extends Service
 				sendBroadcast(broadcastIntent);
 		   }
 		   
-		   sendPacket(intent.getByteArrayExtra ("packetData"),intent.getStringExtra("openKey"));
-		   
+		   byte[] packetData = intent.getByteArrayExtra ("packetData");
+		   if (packetData != null)
+		   {
+			   sendPacket(packetData, intent.getStringExtra("openKey"));
+		   }
     	   if (intent.getBooleanExtra("forceConnect", false))
            {
     		   /* This handle force connect intents where we have nothing to send but want to open the channel anyway.*/
     		   startClientConnection();
            }
 		   } catch(Exception e){e.printStackTrace();}
+		   String closeKey = intent.getStringExtra("closeKey");
+
+		   if (closeKey != null)
+		   {
+			   connectionLocks.remove(closeKey);
+			   if (connectionLocks.isEmpty())
+			   {
+				   mSocketThread.stopRunning();
+			   }
+		   }
 	   	}
 	}
 	

@@ -33,14 +33,13 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
 
-        Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", false)), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", true)), Toast.LENGTH_SHORT).show();
         
 		if(mServerSocketThread.running == SocketThread.THREAD_STOPPED)
 		{
         	mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     		if (mBluetoothAdapter == null) {
     		    // Device does not support Bluetooth
-    			// [TODO] Handle this gracefully.
     	        Toast.makeText(this, "Error Bluetooth not available!", Toast.LENGTH_SHORT).show();
     	        return START_STICKY;
     		}
@@ -164,6 +163,7 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
     	void startRunning(BluetoothSocket socket)
     	{
+    		Log.i("BluetoothInterfaceService","startRunning");
     		synchronized(this)
     		{
 	    		if(running == THREAD_STOPPED)
@@ -177,8 +177,15 @@ public class BluetoothInterfaceService extends InterfaceBaseService
 	    			{
 	    				server=true;
 	    			}
-	    			running = THREAD_RUNNING;
-	    			start();
+	    			if (!isAlive())
+	    			{
+	    				running = THREAD_RUNNING;
+	    				start();
+	    			}
+	    			else
+	    			{
+	    				Log.e("BluetoothInterfaceService","UNEXPECTED thread being alive");
+	    			}
 	    		}
     		}
     	}

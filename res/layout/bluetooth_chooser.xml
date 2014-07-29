@@ -4,31 +4,22 @@
     android:layout_height="match_parent" >
 
     <Button
-        android:id="@+id/buttonSubmit"
+        android:id="@+id/buttonInbox"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:text="Select" />
+        android:text="Inbox" />
 
     <ListView
         android:id="@+id/listView1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/buttonSubmit"
+        android:layout_above="@+id/buttonInbox"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/textViewStatus" >
-
+        android:layout_below="@+id/textView1">
     </ListView>
-
-    <Button
-        android:id="@+id/buttonCancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:text="Cancel" />
 
     <TextView
         android:id="@+id/textViewStatus"
@@ -38,5 +29,30 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
         android:text="Status:" />
+
+    <Button
+        android:id="@+id/buttonQuit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@+id/buttonInbox"
+        android:text="Quit" />
+
+    <Button
+        android:id="@+id/buttonDebug"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:text="Debug" />
+
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/textViewStatus"
+        android:text="Device to connect to:"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
 
 </RelativeLayout>

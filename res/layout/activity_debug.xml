@@ -159,4 +159,13 @@
         android:layout_alignLeft="@+id/checkBoxIPConnect"
         android:text="StartInboxActivity" />
 
+    <CheckBox
+        android:id="@+id/checkBoxLaunchInbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/buttonStartInboxActivity"
+        android:layout_alignBottom="@+id/buttonStartInboxActivity"
+        android:layout_toRightOf="@+id/buttonStartInboxActivity"
+        android:text="Launch to Inbox" />
+
 </RelativeLayout>

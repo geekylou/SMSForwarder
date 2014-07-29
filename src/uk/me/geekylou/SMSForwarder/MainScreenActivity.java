@@ -34,6 +34,8 @@ public class MainScreenActivity extends FragmentActivity {
 	private InboxFragment listFragment;
 	private TimelineFragment detailFragment;
 
+	String  sender;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -52,20 +54,20 @@ public class MainScreenActivity extends FragmentActivity {
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
-		
-    	/*mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
-    	/* cludge to make TCPIP Service work.*/
-    	/*mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
-	
- 		startService(bluetoothService);*/
-		
 		mProtocolHandler.sendInboxRequest();
 	}
 
 	protected void onDestroy()
 	{
 		super.onDestroy();
+		mProtocolHandler.closeConnection();
 		unregisterReceiver(receiver);
+	}
+	
+	protected void onPause()
+	{
+		super.onPause();
+		mProtocolHandler.closeConnection();		
 	}
 	
 	protected void onResume()
@@ -77,10 +79,14 @@ public class MainScreenActivity extends FragmentActivity {
 
 		detailFragment = (TimelineFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
 		
-		//String sender = listFragment.getItem(0).sender;
+		InboxEntry item = listFragment.getItem(0);
+		if (item != null && sender == null)
+		{
+			sender = listFragment.getItem(0).sender;
+		}
+			
+		detailFragment.setMessageCache(mMessages,sender,true);
 		
-		//detailFragment.setMessageCache(mMessages,sender,true);
-
 		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
 
 	      	  @Override
@@ -105,10 +111,10 @@ public class MainScreenActivity extends FragmentActivity {
 		Cursor c = managedQuery(intent.getData(), null, null, null, null);
 		if (c.moveToFirst()) 
 		{
-		  String name  = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.DISPLAY_NAME));
+		  sender  = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.DISPLAY_NAME));
 		  String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
-		 
-		  detailFragment.messageToNewContact(mMessages,name,phone,true);
+		  
+		  detailFragment.messageToNewContact(mMessages,sender,phone,true);
 		}
 	}
 	
@@ -127,6 +133,8 @@ public class MainScreenActivity extends FragmentActivity {
 	
 	class MainScreenProtocolHandler extends ProtocolHandler
 	{
+		static final String openKey = "uk.me.geekylou.MainScreenActivity";
+		
 		MainScreenProtocolHandler(Context ctx, int sourceAddress) {
 			super(ctx, sourceAddress);
 		}
@@ -138,7 +146,7 @@ public class MainScreenActivity extends FragmentActivity {
 
 			/* Start service with a request for the inbox on the peer.*/
 	        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-	        bluetoothService.putExtra("openKey","uk.me.geekylou.MainScreenActivity");
+	        bluetoothService.putExtra("openKey",openKey);
 	        
 	    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
 	    	/* Kludge to make TCPIP Service work.*/
@@ -147,10 +155,17 @@ public class MainScreenActivity extends FragmentActivity {
 	 		ctx.startService(bluetoothService);		
 		}
 		
+		void closeConnection()
+		{
+			Intent broadcastIntent = new Intent();
+			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+			broadcastIntent.putExtra("closeKey", openKey);
+			sendBroadcast(broadcastIntent);
+		}
+		
 	    boolean handleSMSMessage(int type,int id,String sender, String message,Date date) 
 	    {
-	    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
-	    
 	    	Cursor cursor;
 	    	
 	    	switch(type)

@@ -168,6 +168,18 @@ public class MainActivity extends Activity {
             }
         });
 		
+		CheckBox checkLaunchToInbox = (CheckBox)findViewById(R.id.checkBoxLaunchInbox);
+		checkLaunchToInbox.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+    		    SharedPreferences.Editor mPreferencesEditor = prefs.edit();
+
+    		    mPreferencesEditor.putBoolean("LAUNCH_TO_INBOX"  , ((CheckBox)v).isChecked());
+        		mPreferencesEditor.commit();
+				
+			}});
+		
 		IntentFilter filter = new IntentFilter(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
 		receiver = new ResponseReceiver();
