@@ -27,7 +27,7 @@ import android.widget.Button;
 
 public class MainScreenActivity extends FragmentActivity {
 	protected static final int PICK_CONTACT = 0;
-	private CachingProtocolHandler mProtocolHandler;
+	private MainScreenProtocolHandler mProtocolHandler;
 	private MessageCache mMessages;
 	private ResponseReceiver receiver;
 	
@@ -40,7 +40,7 @@ public class MainScreenActivity extends FragmentActivity {
 		setContentView(R.layout.main);
 		
 		mMessages        = new MessageCache(this);
-		mProtocolHandler = new MainScreenProtocolHandler(this,0x104,mMessages);
+		mProtocolHandler = new MainScreenProtocolHandler(this,0x104);
 		
 		//Intent intent = getIntent();
 		
@@ -125,16 +125,46 @@ public class MainScreenActivity extends FragmentActivity {
 	   }
 	}
 	
-	class MainScreenProtocolHandler extends CachingProtocolHandler
+	class MainScreenProtocolHandler extends ProtocolHandler
 	{
-		MainScreenProtocolHandler(Context ctx, int sourceAddress, MessageCache messages) {
-			super(ctx, sourceAddress, messages);
+		MainScreenProtocolHandler(Context ctx, int sourceAddress) {
+			super(ctx, sourceAddress);
 		}
 		
+		void sendInboxRequest()
+		{
+			long latestMessageDate = mMessages.getLatestMessageDate();
+			Log.d("SMSForwarder", "CachingProtocolHandler latestMessageDate(" + latestMessageDate + ") ");
+
+			/* Start service with a request for the inbox on the peer.*/
+	        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
+	        bluetoothService.putExtra("openKey","uk.me.geekylou.MainScreenActivity");
+	        
+	    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+	    	/* Kludge to make TCPIP Service work.*/
+	    	sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+		
+	 		ctx.startService(bluetoothService);		
+		}
+		
+	    boolean handleSMSMessage(int type,int id,String sender, String message,Date date) 
+	    {
+	    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
+	    
+	    	Cursor cursor;
+	    	
+	    	switch(type)
+	    	{
+	    	case SMS_MESSAGE_TYPE_DONE:
+				updateFinished();
+	    	}
+	        return false;
+		}
+
 		void updateFinished()
 		{
 			detailFragment.refreshEntries();
 			listFragment.refreshEntries();
-		}
+		}		
 	}
 }
