@@ -100,7 +100,7 @@ abstract class InterfaceBaseService extends Service
 		byte packetBuffer[];
 	}
 	
-    abstract class SocketThread extends Thread
+    abstract class SocketThread
     {
     	// We use the running variable not only to stop the thread but also so we know when it's safe to restart it.
     	// (starting a thread which is already started will cause an exception).  So we know it's safe to restart the
@@ -118,9 +118,7 @@ abstract class InterfaceBaseService extends Service
     	ProtocolHandler  handler = new ServiceProtocolHandler(InterfaceBaseService.this,0x104); 
     	LinkedList<PacketQueueItem> mPacketQueue = new LinkedList<PacketQueueItem>();
     	
-    	int running = 0; // Set to true before starting the thread and false when stopping the thread.
     	boolean isOpen = false,server=false;  // True when it is safe to write to the socket.
-		private Object mSocket;
     
     	abstract void initServerConnection() throws IOException;
     	
@@ -128,126 +126,120 @@ abstract class InterfaceBaseService extends Service
     	abstract boolean isConnected();
     	abstract void close() throws IOException;
 		private OutputThread mOutputThread = null;
+    	InputThread  mInputThread = null;
 		
-    	public void run()
+    	class InputThread extends Thread
     	{
-    		mOutputThread = new OutputThread();
-			mOutputThread.start();
+        	int running = 0; // Set to true before starting the thread and false when stopping the thread.
 
-    		if (server)
-    		{    			
-    			try 
-    			{
-    			initServerConnection();
-    			} catch(IOException e)
-    			{
-    				e.printStackTrace();
-    				statusUpdate("Disconnected. Can't initilise connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+        	public void run()
+        	{
+        		running = THREAD_RUNNING;
+        		mOutputThread = new OutputThread();
+    			mOutputThread.start();
 
-    			}
-				statusUpdate("Disconnected. Waiting for connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
-    		}
-    		
-    		while(running == THREAD_RUNNING)
-    		{
-    			try {
-    				acceptConnection(server);
-    				
-    				if (running != THREAD_RUNNING) break;
+        		if (server)
+        		{    			
+        			try 
+        			{
+        			initServerConnection();
+        			} catch(IOException e)
+        			{
+        				e.printStackTrace();
+        				statusUpdate("Disconnected. Can't initilise connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
 
-    				synchronized(mOutputThread.waitObj)
+        			}
+    				statusUpdate("Disconnected. Waiting for connection.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+        		}
+        		
+        		while(running == THREAD_RUNNING)
+        		{
+        			try {
+        				acceptConnection(server);
+        				
+        				if (running != THREAD_RUNNING) break;
+
+        				synchronized(mOutputThread.waitObj)
+        				{
+        					mOutputThread.waitObj.notify();
+        				}
+        				
+        				handleConnection();
+
+        			} catch (IOException e) {
+        				e.printStackTrace();
+        				isOpen = false;
+        			}
+
+        			if (!server)
     				{
-    					mOutputThread.waitObj.notify();
-    				}
-    				
-    				handleConnection();
+    					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+    					try {
+    						sleep(4000);
+    					} catch (InterruptedException e) 
+    					{
+    						/* There's not anything worth doing here if we get an interrupted exception.*/
+    					}
+    				}		
 
-    			} catch (IOException e) {
-    				e.printStackTrace();
-    				isOpen = false;
-    			}
+        			isOpen = false;
 
-    			if (!server)
-				{
-					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
-					try {
-						sleep(4000);
-					} catch (InterruptedException e) 
-					{
-						/* There's not anything worth doing here if we get an interrupted exception.*/
-					}
-				}		
+            		out = null;
+        		}
+        	}
+        	
+        	void handleConnection() throws IOException
+        	{
+        		byte header[] = new byte[6];
 
-    			isOpen = false;
+        		synchronized(this) 
+        		{
+        		isOpen = true;
+        		}
 
-        		out = null;
-    		}
-    		Log.i("BluetoothInterfaceService", "stopped!!!!!!!");
-    		synchronized(this)
-    		{
-    			if (mOutputThread != null)
-    			{
-    				mOutputThread.status = THREAD_CLOSING;
-    				mOutputThread.interrupt();
-    				running = THREAD_STOPPED;
-    			}
-    			mOutputThread = null;
-    		}
-    		Log.i("BluetoothInterfaceService", "stopped done");
+        		while(running == THREAD_RUNNING)
+        		{
+        			int retval = 0;
+        			int source = in.readShort();
+        			int dest   = in.readShort();
+        			int length = in.readShort();
+        			
+        			//Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
+        			
+        			if(!isConnected())
+        			{
+        			break;
+        			}
+        			
+        			if (length > 0 && length < 65536)
+        			{
+        				byte[] payload = new byte[length + 1];
+        				retval = in.read(payload, 0, length + 1);
+        				
+        				if(retval != length + 1) {running = THREAD_CLOSING; break;}
+        				
+        				//Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
+        				
+        				if (!handler.decodePacket(header, payload))
+        				{
+        					// processing done here¦.
+        					Intent broadcastIntent = new Intent();
+        					broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
+        					broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+        					broadcastIntent.putExtra("header", header);
+        					broadcastIntent.putExtra("payload", payload);
+        					sendBroadcast(broadcastIntent);
+        				}
+        			}
+        		}
+        		synchronized(this) 
+        		{
+        		isOpen = false;
+        		}
 
-    	}
-    	
-    	void handleConnection() throws IOException
-    	{
-    		byte header[] = new byte[6];
-
-    		synchronized(this) 
-    		{
-    		isOpen = true;
-    		}
-
-    		while(running == THREAD_RUNNING)
-    		{
-    			int retval = 0;
-    			int source = in.readShort();
-    			int dest   = in.readShort();
-    			int length = in.readShort();
-    			
-    			//Log.i("BluetoothInterfaceService", "in.read " + retval + " PKT len: " + (int)length);
-    			
-    			if(!isConnected())
-    			{
-    			break;
-    			}
-    			
-    			if (length > 0 && length < 65536)
-    			{
-    				byte[] payload = new byte[length + 1];
-    				retval = in.read(payload, 0, length + 1);
-    				
-    				if(retval != length + 1) {running = THREAD_CLOSING; break;}
-    				
-    				//Log.i("BluetoothInterfaceService", "in.read(PKT body) " + retval);
-    				
-    				if (!handler.decodePacket(header, payload))
-    				{
-    					// processing done here¦.
-    					Intent broadcastIntent = new Intent();
-    					broadcastIntent.setAction(BluetoothInterfaceService.PACKET_RECEIVED);
-    					broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-    					broadcastIntent.putExtra("header", header);
-    					broadcastIntent.putExtra("payload", payload);
-    					sendBroadcast(broadcastIntent);
-    				}
-    			}
-    		}
-    		synchronized(this) 
-    		{
-    		isOpen = false;
-    		}
-
-    		in.close();
-    		out.close();
+        		in.close();
+        		out.close();
+        	}    		
     	}
     	
     	/* TODO: move output and connection management here.*/
@@ -291,16 +283,23 @@ abstract class InterfaceBaseService extends Service
     					synchronized(waitObj)
     					{
     						waitObj.wait(10000);
+    						Log.i("BluetoothInterfaceService", "THREAD notified.");
     					}
 					} catch (InterruptedException e) {
 						return;
 					}
-    				
-    				if (status == THREAD_STOP_DEFERRED)
-    				{
+    			
+					if (status == THREAD_STOP_DEFERRED && mPacketQueue.isEmpty()) /* Can't only do a deferred shutdown if the output
+																					 queue is empty.*/
+					{
 						Log.i("BluetoothInterfaceService", "THREAD_STOP_DEFERRED");
-    					stopRunning();
-    				}
+						stopRunning();
+						status = THREAD_RUNNING;
+					}
+					if (!isConnected())
+					{
+						return;
+					}
     			}
     		}
     	}
@@ -310,41 +309,45 @@ abstract class InterfaceBaseService extends Service
     		if (mOutputThread != null)
     			mOutputThread.status = THREAD_STOP_DEFERRED;
     	}
-    	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
-    	void stopRunning()
-    	{    		
-    		running = THREAD_CLOSING;/* Could use isInterrupted instead however we need a value to store whether the thread has 
-    		shutdown so we might as we continue using the status value.*/
-    		
-    		
-            try {
-            	interrupt();
-            	close();
-    			try {
-    				join(10000);
-    			} catch (InterruptedException e) {
-    	    		Log.i("InterfaceBaseClass","stopRunning EXCEPTION interrupted.");
-    				e.printStackTrace();
-    			}
-            } catch(IOException e) 
-            	{
-            		Log.i("InterfaceBaseClass","stopRunning EXCEPTION IOException.");
-            		e.printStackTrace();
-            	}
-    		statusUpdate("Connection closed.", 0);
-    		Log.i("InterfaceBaseClass","stopRunning=" + isAlive());
+    	
+    	void cancelStopRunningDeffered()
+    	{
+    		if (mOutputThread != null && mOutputThread.status == THREAD_STOP_DEFERRED)
+    			mOutputThread.status = THREAD_RUNNING;
     	}
     	
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
-    	/*void startRunning(boolean mServer)
-    	{
-    		if(_running == THREAD_STOPPED)
+    	synchronized void stopRunning()
+    	{   
+    		if (mInputThread != null)
     		{
-    			this.server = mServer;
-    			_running = THREAD_RUNNING;
-    			start();
+	    		mInputThread.running = THREAD_CLOSING;/* Could use isInterrupted instead however we need a value to store whether the thread has 
+	    		shutdown so we might as we continue using the status value.*/
+	    		
+	            try {
+	            	mInputThread.interrupt();
+	            	mOutputThread.interrupt();
+	            	close();
+	            } catch(IOException e) 
+	            	{
+	            		Log.i("InterfaceBaseClass","stopRunning EXCEPTION IOException.");
+	            		e.printStackTrace();
+	            	}
+	    		statusUpdate("Connection closed.", 0);
+	    		Log.i("InterfaceBaseClass","stopRunning");
+	    		mOutputThread.status = THREAD_STOPPED;
+	    		mInputThread.running = THREAD_STOPPED;/* Could use isInterrupted instead however we need a value to store whether the thread has */
+	    		mInputThread  = null;
+	    		mOutputThread = null;
     		}
-    	}*/
+    	}
+    	
+    	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
+    	void start()
+    	{
+			mInputThread = new InputThread();
+			mInputThread.start();
+	}
     	
     	boolean sendPacket(byte[] packetData,boolean buffer)
     	{
@@ -466,6 +469,10 @@ abstract class InterfaceBaseService extends Service
 		{
 			mSocketThread.stopRunningDeffered();
 		}
+		else
+		{
+			mSocketThread.cancelStopRunningDeffered();
+		}
 	}
 	
 	abstract void startClientConnection();
@@ -543,7 +550,11 @@ abstract class InterfaceBaseService extends Service
 			   connectionLocks.remove(closeKey);
 			   if (connectionLocks.isEmpty())
 			   {
-				   mSocketThread.stopRunning();
+				   mSocketThread.stopRunningDeffered();
+			   }
+			   else
+			   {
+				   mSocketThread.cancelStopRunningDeffered();
 			   }
 		   }
 	   	}

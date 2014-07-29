@@ -39,8 +39,8 @@ public class ServiceProtocolHandler extends ProtocolHandler {
     	case SMS_MESSAGE_TYPE_SEND:
     		/* Sender is destination no. in the case of a send type.*/
     		/* [NOTE] disabled sending of text messages. */
-    		//SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
-    		//break;
+    		SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
+    		break;
     	case SMS_MESSAGE_TYPE_PHONE_CALL:
     	case SMS_MESSAGE_TYPE_NOTIFICATION:	
 	    	// define the columns to return for getting the name of the sender.
