@@ -114,7 +114,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
     	void startRunning(InetAddress peerAddress, int port)
     	{
-    	/*	if(running == THREAD_STOPPED)
+    		if(mInputThread	== null)
     		{
     			mPort        = port;
     			mPeerAddress = peerAddress;
@@ -126,9 +126,8 @@ public class TCPIPInterfaceService extends InterfaceBaseService
     			{
     				server=true;
     			}
-    			running = THREAD_RUNNING;
     			start();
-    		}*/
+    		}
     	}
     }
 
