@@ -44,12 +44,14 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.view.LayoutInflater;
 
+/* This is the first activity initiated after launch.  It allows the user to choose the peer device and launch the inbox on the remote device.*/
 public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
 	private ListView mTimeLineView;
 	private ArrayAdapter<BluetoothChooserEntry> mBluetoothDeviceArrayAdapter;
 	static final int REQUEST_NEW_ENTRY = 1000;
 	private BluetoothAdapter mBluetoothAdapter;
 	private SharedPreferences prefs;
+	private Intent mBluetoothService;
 	
     /** Called when the activity is first created. */
     @Override
@@ -61,74 +63,101 @@ public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
         final Intent intent = getIntent();
         String action = intent.getAction();
         
+		mBluetoothService = new Intent(this,BluetoothInterfaceService.class);
+
         prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
         
         mBluetoothDeviceArrayAdapter = new ArrayAdapter<BluetoothChooserEntry>(this, R.layout.itemb);
         
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-		if (mBluetoothAdapter == null) {
+		if (mBluetoothAdapter != null) {
 		    // Device does not support Bluetooth
-		}
 		
-		if (!mBluetoothAdapter.isEnabled()) {
-			// We shouldn't get here unless the user disable bluetooth after starting the app as this is checked for in
-			// main app startup.
-			finish();
+			if (!mBluetoothAdapter.isEnabled()) 
+			{
+				Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+				int REQUEST_ENABLE_BT=45;
+				startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+			}
+			else
+			{
+		        final Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+		        // If there are paired devices
+		               
+		        if (pairedDevices.size() > 0) 
+		        {
+			        // Loop through paired devices
+			        for (BluetoothDevice device : pairedDevices) {
+			        	// Add the name and address to an array adapter to show in a ListView
+			        	BluetoothChooserEntry entry = new BluetoothChooserEntry();
+			        	entry.device = device;
+			        	
+			            mBluetoothDeviceArrayAdapter.add(entry);
+			        }
+				}
+		        if (prefs.getString("BT_ID", null) != null)
+		        {
+		        	if (prefs.getBoolean("LAUNCH_TO_INBOX", false))
+		        	{
+						startActivity(new Intent(BluetoothChooserActivity.this,MainScreenActivity.class));
+						finish();
+		        	}
+		        	else
+		        		startService(mBluetoothService);
+		        }
+			}
 		}
-		
-        final Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-        // If there are paired devices
-               
-        if (pairedDevices.size() > 0) {
-        // Loop through paired devices
-        for (BluetoothDevice device : pairedDevices) {
-        	// Add the name and address to an array adapter to show in a ListView
-        	BluetoothChooserEntry entry = new BluetoothChooserEntry();
-        	entry.device = device;
-        	
-            mBluetoothDeviceArrayAdapter.add(entry);
-         }
-     }
 
-// TODO: Do we want to remove OK/Cancel buttons for selecting Bluetooth device to connect to.
-/*        
-        Button mPostEntryButton = (Button) findViewById(R.id.buttonSelect);
+		Button mPostEntryButton = (Button) findViewById(R.id.buttonQuit);
         mPostEntryButton.setOnClickListener(new OnClickListener()
         {
 
 			@Override
 			public void onClick(View v) {
-	
+				stopService(mBluetoothService);
+				finish();
 			}
         	
         });
         
-        mPostEntryButton = (Button) findViewById(R.id.buttonCancel);
+        mPostEntryButton = (Button) findViewById(R.id.buttonInbox);
         mPostEntryButton.setOnClickListener(new OnClickListener()
         {
 
 			@Override
 			public void onClick(View v) {			
-						
+				startActivity(new Intent(BluetoothChooserActivity.this,MainScreenActivity.class));
+				finish();
 			}
         	
         });
-*/
+
+        mPostEntryButton = (Button) findViewById(R.id.buttonDebug);
+        mPostEntryButton.setOnClickListener(new OnClickListener()
+        {
+
+			@Override
+			public void onClick(View v) {			
+				startActivity(new Intent(BluetoothChooserActivity.this,MainActivity.class));
+				finish();
+			}
+        	
+        });
+
         mTimeLineView = (ListView) findViewById(R.id.listView1);
         mTimeLineView.setAdapter(mBluetoothDeviceArrayAdapter);
         mTimeLineView.setOnItemClickListener (new AdapterView.OnItemClickListener() {
 
         	  public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
-        		
+        		arg1.setSelected(true);
     		    SharedPreferences.Editor mPreferencesEditor = prefs.edit();
 
     		    mPreferencesEditor.putString("BT_ID"  , mBluetoothDeviceArrayAdapter.getItem(position).device.getAddress());
     		    mPreferencesEditor.putString("BT_NAME", mBluetoothDeviceArrayAdapter.getItem(position).device.getName());
         		mPreferencesEditor.commit();
-        		
-      			intent.putExtra("DeviceID",mBluetoothDeviceArrayAdapter.getItem(position).device.getAddress());
-				setResult(RESULT_OK);
-				finish();
+
+        		stopService(mBluetoothService);
+        		startService(mBluetoothService);
         	  }
         	});
    }    

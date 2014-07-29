@@ -4,55 +4,53 @@
     android:layout_height="match_parent" >
 
     <Button
-        android:id="@+id/buttonInbox"
+        android:id="@+id/buttonSend"
         style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignTop="@+id/multiAutoCompleteTextViewSMS"
+        android:text="Send" />
+
+    <MultiAutoCompleteTextView
+        android:id="@+id/multiAutoCompleteTextViewSMS"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:text="Inbox" />
+        android:layout_toLeftOf="@+id/buttonSend"
+        android:ems="10" >
+
+        <requestFocus />
+    </MultiAutoCompleteTextView>
 
     <ListView
         android:id="@+id/listView1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/buttonInbox"
+        android:layout_above="@+id/multiAutoCompleteTextViewSMS"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/textView1">
+        android:layout_below="@+id/spinner1" >
+
     </ListView>
 
-    <TextView
-        android:id="@+id/textViewStatus"
+    <Spinner
+        android:id="@+id/spinner1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
-        android:text="Status:" />
-
-    <Button
-        android:id="@+id/buttonQuit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_toRightOf="@+id/buttonInbox"
-        android:text="Quit" />
-
-    <Button
-        android:id="@+id/buttonDebug"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:text="Debug" />
+        android:layout_toRightOf="@+id/textViewSender" />
 
     <TextView
-        android:id="@+id/textView1"
+        android:id="@+id/textViewSender"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:gravity="center"
+        android:layout_alignBottom="@+id/spinner1"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/textViewStatus"
-        android:text="Device to connect to:"
+        android:layout_alignParentTop="true"
+        android:text="Sender"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
 </RelativeLayout>

@@ -114,13 +114,13 @@ public class MainActivity extends Activity {
 		Button but1= (Button)findViewById(R.id.button1);
 		but1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-        		Intent broadcastIntent = new Intent();
+/*        		Intent broadcastIntent = new Intent();
         		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
         		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
         		broadcastIntent.putExtra("requestStatus", true);
-        		sendBroadcast(broadcastIntent);
+        		sendBroadcast(broadcastIntent);*/
 
-//            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,0,0);
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,0,0);
             }
         });
 		Button but2= (Button)findViewById(R.id.button2);
@@ -131,18 +131,13 @@ public class MainActivity extends Activity {
 		Button but3= (Button)findViewById(R.id.button3);
 		but3.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,2,0);
-            	
-            	@SuppressWarnings("deprecation")
-				Intent intent = new Intent(Intent.ACTION_PICK, Contacts.Phones.CONTENT_URI);
-            	startActivityForResult(intent, PICK_CONTACT); 
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,2,0);            	
             }
         });
 		Button but4 = (Button)findViewById(R.id.button4);
 		but4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, "112233", "This is a test sms message triggered using a button",new Date().getTime());
-            	//mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
+            	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,3,0);
             }
         });
 
@@ -166,12 +161,24 @@ public class MainActivity extends Activity {
 		Button butInboxActivity = (Button)findViewById(R.id.buttonStartInboxActivity);
 		butInboxActivity.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	Intent intent = new Intent(MainActivity.this, InboxActivity.class);
+            	Intent intent = new Intent(MainActivity.this, MainScreenActivity.class);
 				intent.setAction(intent.ACTION_VIEW);
 				startActivityForResult(intent,0);
 				// TODO Auto-generated method stub
             }
         });
+		
+		CheckBox checkLaunchToInbox = (CheckBox)findViewById(R.id.checkBoxLaunchInbox);
+		checkLaunchToInbox.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+    		    SharedPreferences.Editor mPreferencesEditor = prefs.edit();
+
+    		    mPreferencesEditor.putBoolean("LAUNCH_TO_INBOX"  , ((CheckBox)v).isChecked());
+        		mPreferencesEditor.commit();
+				
+			}});
 		
 		IntentFilter filter = new IntentFilter(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);

@@ -29,7 +29,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
 
         Toast.makeText(this, "IP Service Started", Toast.LENGTH_SHORT).show();
         
-		if(mSocketThread.running == SocketThread.THREAD_STOPPED)
+		if(mSocketThread != null)
 		{  		
     		initListeners(this,intent);
     		
@@ -114,7 +114,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
     	/* We can't override start and stop so you must use stopRunning and startRunning instead.*/
     	void startRunning(InetAddress peerAddress, int port)
     	{
-    		if(running == THREAD_STOPPED)
+    	/*	if(running == THREAD_STOPPED)
     		{
     			mPort        = port;
     			mPeerAddress = peerAddress;
@@ -128,7 +128,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
     			}
     			running = THREAD_RUNNING;
     			start();
-    		}
+    		}*/
     	}
     }
 
