@@ -23,7 +23,6 @@ public class TimelineFragment extends InboxFragment
 	
 	public TimelineFragment()
 	{
-		
 	}
 	@Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -36,6 +35,7 @@ public class TimelineFragment extends InboxFragment
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+		layout = R.layout.text_preview_item;
         
         Button buttonSend = (Button) getView().findViewById(R.id.buttonSend);
         buttonSend.setOnClickListener(new View.OnClickListener() {

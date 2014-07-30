@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/SidebarBackgroundColour" >
+
+    <ImageView
+        android:id="@+id/imageViewIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/ic_launcher" />
+    
+    <TextView
+        android:id="@+id/textViewBody"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/imageViewIcon"
+        android:ems="10"
+        android:padding="2dp"
+        android:text="Body"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/textViewFooter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/textViewBody"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/textViewBody"
+        android:gravity="left"
+        android:padding="2dp"
+        android:text="Footer"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/textViewDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/textViewFooter"
+        android:gravity="right"
+        android:text="Date"
+        android:textAlignment="gravity"
+        android:textSize="12sp" />
+    
+</RelativeLayout>

@@ -21,6 +21,7 @@ import android.view.LayoutInflater;
 
 public class InboxFragment extends Fragment {
 	private ListView mInboxEntriesView = null;
+	protected int layout; 
 	static final int REQUEST_NEW_ENTRY = 1000;
 	String search;
 		
@@ -34,7 +35,6 @@ public class InboxFragment extends Fragment {
 	
 	public InboxFragment()
 	{
-		
 	}
 	
 	@Override
@@ -51,6 +51,7 @@ public class InboxFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
      
         Activity ctx = getActivity();
+		layout = R.layout.thread_preview_item;
         
         //final Intent intent = ctx.getIntent();
         		
@@ -79,7 +80,7 @@ public class InboxFragment extends Fragment {
     	
     	Activity ctx = getActivity();
 
-    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, R.layout.text_preview_item), mSender,threadView);
+    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout), mSender,threadView);
 	
 		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
     }
@@ -106,7 +107,7 @@ public class InboxFragment extends Fragment {
     	Activity ctx = getActivity();
     	if (mMessages != null)
     	{
-    		mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, R.layout.text_preview_item), mSender,threadView);
+    		mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout), mSender,threadView);
     	
     		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
     	}

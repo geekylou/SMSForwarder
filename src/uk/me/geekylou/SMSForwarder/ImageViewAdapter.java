@@ -11,17 +11,19 @@ import android.widget.TextView;
 class ImageViewAdapter extends ArrayAdapter<InboxEntry>
 {
 	private static LayoutInflater inflater=null;
+	private int mTextViewResourceId;
 	
 	public ImageViewAdapter(Context context, int textViewResourceId) {
 		super(context, textViewResourceId);		
 		
+		mTextViewResourceId = textViewResourceId;
 		inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 	}
 	
 	public View getView(int position, View convertView, ViewGroup parent) {
 		View vi=convertView;
         if(convertView==null)
-            vi = inflater.inflate(R.layout.text_preview_item, null);
+            vi = inflater.inflate(mTextViewResourceId, null);
         
         InboxEntry entry = this.getItem(position);
         
