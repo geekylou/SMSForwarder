@@ -171,7 +171,7 @@ abstract class InterfaceBaseService extends Service
         				isOpen = false;
         			}
 
-        			if (!server)
+        			if (!server && running == THREAD_RUNNING)
     				{
     					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
     					try {

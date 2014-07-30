@@ -2,7 +2,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/SidebarBackgroundColour" >
+    android:divider="?android:dividerHorizontal"
+        android:background="@color/SidebarBackgroundColour" >
 
     <ListView
         android:id="@+id/listView1"
@@ -11,6 +12,7 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_below="@+id/buttonNewThread"
+        android:layout_toLeftOf="@+id/button1"
         android:background="@color/SidebarBackgroundColour" >
 
     </ListView>
@@ -33,4 +35,18 @@
         android:layout_below="@+id/textViewStatus"
         android:text="New" />
 
+    
+	<ImageView
+        android:id="@+id/button1"
+	    xmlns:android="http://schemas.android.com/apk/res/android"
+    	android:src="@android:drawable/divider_horizontal_dark"
+    	android:layout_width="wrap_content"
+    	android:layout_height="wrap_content"
+	    android:layout_alignParentRight="true"
+    	android:scaleType="fitXY"
+    	android:paddingLeft="2dp"
+    	android:paddingRight="2dp"
+    android:paddingBottom="2dp"
+    android:paddingTop="2dp" />
+	
 </RelativeLayout>
