@@ -20,6 +20,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
 		
 	public TCPIPInterfaceService()
 	{
+		key = "TCPIPInterfaceService";		
 		mSocketThread = new TCPIPSocketThread();
 	}
 	

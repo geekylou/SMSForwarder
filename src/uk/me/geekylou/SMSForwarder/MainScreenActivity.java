@@ -54,7 +54,7 @@ public class MainScreenActivity extends FragmentActivity {
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
-		mProtocolHandler.sendInboxRequest();
+		mProtocolHandler.sendInboxRequest(true);
 	}
 
 	protected void onDestroy()
@@ -139,20 +139,24 @@ public class MainScreenActivity extends FragmentActivity {
 			super(ctx, sourceAddress);
 		}
 		
-		void sendInboxRequest()
+		void sendInboxRequest(boolean launch)
 		{
 			long latestMessageDate = mMessages.getLatestMessageDate();
 			Log.d("SMSForwarder", "CachingProtocolHandler latestMessageDate(" + latestMessageDate + ") ");
 
-			/* Start service with a request for the inbox on the peer.*/
-	        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-	        bluetoothService.putExtra("openKey",openKey);
-	        
-	    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
-	    	/* Kludge to make TCPIP Service work.*/
+			if (launch)
+			{
+				/* Start service with a request for the inbox on the peer.*/
+		        Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
+		        bluetoothService.putExtra("openKey",openKey);
+		        
+		    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+		    	/* Kludge to make TCPIP Service work.*/
+			
+		 		ctx.startService(bluetoothService);
+			}
+	 		
 	    	sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
-		
-	 		ctx.startService(bluetoothService);		
 		}
 		
 		void closeConnection()
@@ -170,6 +174,10 @@ public class MainScreenActivity extends FragmentActivity {
 	    	
 	    	switch(type)
 	    	{
+	    	case SMS_MESSAGE_TYPE_NOTIFICATION:
+	    		/* If we receive a text message then send a resync request to get the updated inbox with correct ID.*/
+	    		sendInboxRequest(false);
+	    		break;
 	    	case SMS_MESSAGE_TYPE_DONE:
 				updateFinished();
 	    	}

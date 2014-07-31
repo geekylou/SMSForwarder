@@ -19,13 +19,13 @@ import android.widget.Toast;
 public class BluetoothInterfaceService extends InterfaceBaseService
 {
 	UUID uuid = UUID.fromString("0aaaaf9a-c01e-4d2c-8e97-5995c1f6409e"); // Bluetooth magic UUID used for finding other instances of ourselves. 
-	int  notificationId = 1001;
 	BluetoothAdapter mBluetoothAdapter;
 	private BluetoothSocket mSocket;	
 	String bluetoothID;
 	
 	public BluetoothInterfaceService()
 	{
+		key = "BluetoothInterfaceService";
 		mServerSocketThread = new BluetoothSocketThread();
 		mSocketThread       = new BluetoothSocketThread();
 	}
@@ -84,20 +84,6 @@ public class BluetoothInterfaceService extends InterfaceBaseService
         return START_STICKY;
     }
 	
-	void statusUpdate(String statusString, int statusCode)
-	{
-		super.statusUpdate(statusString,statusCode);
-        NotificationCompat.Builder mBuilder =
-			    new NotificationCompat.Builder(this)
-			    .setSmallIcon(R.drawable.ic_launcher)
-			    .setContentTitle("SMS Forwarder")
-			    .setContentText(statusString);
-        
-        NotificationManager mNotifyMgr = 
-		        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        
-		mNotifyMgr.notify(notificationId, mBuilder.build());
-	}
     void startClientConnection()
     {
     	((BluetoothSocketThread)mSocketThread).startRunning(false);

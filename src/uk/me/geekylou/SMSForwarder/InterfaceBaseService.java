@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.http.util.ByteArrayBuffer;
 
+import android.app.NotificationManager;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
@@ -20,14 +21,19 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Telephony;
+import android.support.v4.app.NotificationCompat;
 import android.telephony.PhoneStateListener;
 import android.telephony.SmsMessage;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.Toast;
+import android.support.v4.app.NotificationCompat;
 
 abstract class InterfaceBaseService extends Service
 {
+	int  notificationId = 1001;
+	String key;
+
 	BluetoothAdapter mBluetoothAdapter;
 	ResponseReceiver mReceiver;
 	SMSResponseReceiver mSMSReceiver;
@@ -42,6 +48,7 @@ abstract class InterfaceBaseService extends Service
 
 	SocketThread  mServerSocketThread;
 	SocketThread  mSocketThread;
+	private StatusReceiver mStatusReceiver;
 	
 	public static final String SEND_PACKET     = "uk.me.geekylou.GPSTest.SEND_PACKET";
 	public static final String PACKET_RECEIVED = "uk.me.geekylou.GPSTest.PACKET_RECEIVED";
@@ -60,6 +67,12 @@ abstract class InterfaceBaseService extends Service
 		mReceiver = new ResponseReceiver();
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
 		registerReceiver(mReceiver, filter);
+
+		filter = new IntentFilter(SERVICE_STATUS_UPDATE);
+		mStatusReceiver = new StatusReceiver();
+		filter.addCategory(Intent.CATEGORY_DEFAULT);
+		registerReceiver(mStatusReceiver, filter);
+
 		
 		filter = new IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
@@ -78,9 +91,10 @@ abstract class InterfaceBaseService extends Service
 
         connectionLocks.clear(); /* not ideal but we a pulling the rug out from any callers anyway so... */
         if (mServerSocketThread != null) mServerSocketThread.stopRunning();
-        if (mSocketThread != null) mSocketThread.stopRunning();
-        if (mReceiver != null)     unregisterReceiver(mReceiver);
-        if (mSMSReceiver != null)  unregisterReceiver(mSMSReceiver);
+        if (mSocketThread != null)       mSocketThread.stopRunning();
+        if (mReceiver != null)           unregisterReceiver(mReceiver);
+        if (mStatusReceiver != null)     unregisterReceiver(mStatusReceiver);
+        if (mSMSReceiver != null)        unregisterReceiver(mSMSReceiver);
     }
 
 	void statusUpdate(String statusString, int statusCode)
@@ -90,6 +104,7 @@ abstract class InterfaceBaseService extends Service
 		Intent broadcastIntent = new Intent();
 		broadcastIntent.setAction(BluetoothInterfaceService.SERVICE_STATUS_UPDATE);
 		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+		broadcastIntent.putExtra("senderId", key);
 		broadcastIntent.putExtra("STATUS", new String(statusString));
 		sendBroadcast(broadcastIntent);
 
@@ -185,6 +200,7 @@ abstract class InterfaceBaseService extends Service
         			isOpen = false;
 
             		out = null;
+    				statusUpdate("Disconnected.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
         		}
         	}
         	
@@ -239,6 +255,7 @@ abstract class InterfaceBaseService extends Service
 
         		in.close();
         		out.close();
+	    		statusUpdate("Connection closed.", 0);
         	}    		
     	}
     	
@@ -333,7 +350,6 @@ abstract class InterfaceBaseService extends Service
 	            		Log.i("InterfaceBaseClass","stopRunning EXCEPTION IOException.");
 	            		e.printStackTrace();
 	            	}
-	    		statusUpdate("Connection closed.", 0);
 	    		Log.i("InterfaceBaseClass","stopRunning");
 	    		mOutputThread.status = THREAD_STOPPED;
 	    		mInputThread.running = THREAD_STOPPED;/* Could use isInterrupted instead however we need a value to store whether the thread has */
@@ -559,6 +575,34 @@ abstract class InterfaceBaseService extends Service
 		   }
 	   	}
 	}
+
+	class StatusReceiver extends BroadcastReceiver 
+	{	
+		StatusReceiver()
+		{
+			super();
+		}
+	   @Override
+	    public void onReceive(Context context, Intent intent) 
+	   	{
+		   String keyArg = intent.getStringExtra("senderId");
+		   
+		    if (keyArg != null && keyArg.equals(key))
+		    {
+			    NotificationCompat.Builder mBuilder =
+					    new NotificationCompat.Builder(InterfaceBaseService.this)
+					    .setSmallIcon(R.drawable.ic_launcher)
+					    .setContentTitle("SMS Forwarder")
+					    .setContentText(intent.getStringExtra("STATUS"));
+		        
+		        NotificationManager mNotifyMgr = 
+				        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+			    
+				mNotifyMgr.notify(notificationId, mBuilder.build());
+		    }
+	   	}
+	}
+
 	
 	@Override
 	public IBinder onBind(Intent arg0) {
