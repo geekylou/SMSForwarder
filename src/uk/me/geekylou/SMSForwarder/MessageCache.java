@@ -24,7 +24,8 @@ public class MessageCache extends SQLiteOpenHelper
     private static final int DATABASE_VERSION = 1;
 	private static final String DATABASE_NAME = "message_cache.db";
 	
-	private static final String TABLE_NAME = "entries";
+	private static final String TABLE_NAME      = "entries";
+	private static final String TABLE_NAME_UUID = "uuid2address"; // P2P uuid 2 phone no. mapping.
 
 	static String[] mProjections = new String[] {
         ContactsContract.PhoneLookup.DISPLAY_NAME,
@@ -46,6 +47,11 @@ public class MessageCache extends SQLiteOpenHelper
 				"senderRaw CHAR(40)," +
                 "message TEXT," +
                 "date INTEGER);");
+		
+		//db.execSQL("CREATE TABLE " + TABLE_NAME_UUID + " ("+
+        //        "_id INTEGER PRIMARY KEY," +
+		//		"address CHAR(40)," +
+        //        "uuid CHAR(40);");
     }
 
 	

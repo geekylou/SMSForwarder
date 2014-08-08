@@ -32,6 +32,8 @@ public class ProtocolHandler
 
 	static final int SMS_MESSAGE_TYPE_PHONE_CALL      = 0x8; /* voice call uses the same mechanism as SMS messages.*/
 
+	static final int SMS_MESSAGE_TYPE_SEND_UUID       = 0x9; /* Data message to send to the recipient our unique UUID.*/
+	
 	ProtocolHandler(Context ctx,int sourceAddress)
 	{
 		this.sourceAddress  = sourceAddress;

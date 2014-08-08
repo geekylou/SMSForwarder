@@ -3,6 +3,7 @@ package uk.me.geekylou.SMSForwarder;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.UUID;
 
 import android.app.NotificationManager;
 import android.content.ContentUris;
@@ -41,6 +42,11 @@ public class ServiceProtocolHandler extends ProtocolHandler {
     		/* [NOTE] disabled sending of text messages. */
     		SmsManager.getDefault().sendTextMessage(sender, null, message, null, null);
     		break;
+    	case SMS_MESSAGE_TYPE_SEND_UUID:
+    		byte[] bytes = new byte[]{0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x66,0x55};
+    		
+    		SmsManager.getDefault().sendDataMessage(sender, null, (short) 9100, bytes, null, null);
+    		break;    		
     	case SMS_MESSAGE_TYPE_PHONE_CALL:
     	case SMS_MESSAGE_TYPE_NOTIFICATION:	
 	    	// define the columns to return for getting the name of the sender.
