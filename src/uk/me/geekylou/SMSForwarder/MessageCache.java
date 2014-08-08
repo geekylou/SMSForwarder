@@ -168,27 +168,7 @@ public class MessageCache extends SQLiteOpenHelper
 			}
 			else
 			{
-	        	Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
-	
-	        	// query contact.
-	        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
-	
-	        	if (cursor.moveToFirst()) 
-	        	{
-	            	do{	
-		        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
-	
-		        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
-		        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
-		        		
-		        		if (threadView || bitmap == null)
-		        			entry.bitmap = bitmap = BitmapFactory.decodeStream(bitmapStream);
-		        		else
-		        			entry.bitmap = bitmap;
-		        		
-					}while(cursor.moveToNext() && entry.bitmap == null);
-	        	}
-	    		cursor.close();
+	        	entry.bitmap = getContactBitmap(entry);
 			}
     		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
         	 * message.*/
@@ -267,75 +247,125 @@ public class MessageCache extends SQLiteOpenHelper
     	array.add(sender);
     	return array;
 	}
-	
-	/* Debug function to dump the contents of the database to a file. */
-	/*void dumpDB(Context context)
+	public String getContactName(String address)
 	{
+    	Uri uriPhone = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(address));
+    	
+    	// query contact.
+    	Cursor cursor = ctx.getContentResolver().query(uriPhone, mProjections, null, null, null);
+
+    	if (cursor.moveToFirst()) 
+    	{
+    		return cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME));
+    	}
+		cursor.close();
+		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+    	 * message.*/
+		return address;
+	}
+}
+
+class LocalMessages extends MessageCache
+{
+	private Context ctx;
+	LocalMessages(Context context) {
+		super(context);
+		ctx = context;
+		// TODO Auto-generated constructor stub
+	}
+	
+	public ArrayAdapter<InboxEntry> getTimeline(ArrayAdapter<InboxEntry> mTimelineArrayAdapter,String sender,boolean threadView)
+	{
+		HashMap<String,InboxEntry> mHashmap = new HashMap<String,InboxEntry>();
 		SQLiteDatabase db = getWritableDatabase();
-		
+		Bitmap bitmap = null;
 		Cursor c;
-	
-		c = db.rawQuery("SELECT * FROM entries", null);
+		String args[] = new String[]{sender};
+		Bitmap defaultBitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
 		
-		FileOutputStream os;
-		try {
-			os = new FileOutputStream("/sdcard/db_dump.json",true);
-			DataOutputStream writer = new DataOutputStream(os);
-			
-			while (c.moveToNext())
-			{
-				/* Make sure the timestamp value is being stored in the correct format.The timestamp database column is 
-				 * always correct so we use that one to correct the json one.
-				 /
-				Entry entry = new Entry(new JSONObject(c.getString(c.getColumnIndex("json"))), false);
-				entry.timestamp = new Date(c.getLong(c.getColumnIndex("date")));
-				
-				writer.writeUTF(entry.toJSON());
-			}
-			
-			os.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (JSONException e)
+		if (sender == null)
 		{
-			e.printStackTrace();
+			c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);					
 		}
-	}
-	
-	void restoreDB(String filename)
-	{
-		SQLiteDatabase db = getWritableDatabase();
-		
-		db.execSQL("DROP TABLE entries;");
-		createEntriesTable(db);
-		
-		/* Will be reborn as export functions :) /
-		FileInputStream os;
-		try {
-			os = new FileInputStream(filename);
-			DataInputStream reader = new DataInputStream(os);
-			String str;
+		else
+		{
+			threadView = false; /* Thread view makes no sense for a single contact.*/
+			c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, "address=?", args, null);
+		}
 			
-			while ((str = reader.readUTF()) != null)
+		c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, "address=?", args, null);
+
+		while (c.moveToNext())
+		{
+			boolean addEntry = true;
+			InboxEntry entry = new InboxEntry();
+			entry.id   = c.getInt(c.getColumnIndex("_id"));
+			entry.type = c.getInt(c.getColumnIndex("type"));
+			entry.date = new Date(c.getLong(c.getColumnIndex("date")));
+
+			entry.senderRaw = c.getString(c.getColumnIndex("address"));
+			entry.message   = c.getString(c.getColumnIndex("body"));
+
+			//Log.d("SMSForwarder", "MessageCache " + c.getLong(c.getColumnIndex("date")));
+
+			if (mHashmap.containsKey(entry.senderRaw))
 			{
-				Entry entry = new Entry(new JSONObject(str),false);
-				insertEntry(entry);
+				InboxEntry baseEntry = mHashmap.get(entry.senderRaw);
+				
+				entry.bitmap = baseEntry.bitmap;
+				entry.sender = baseEntry.sender;
 			}
-			
-			os.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JSONException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
+			else
+			{
+				entry.sender = getContactName(entry.senderRaw);
+
+				Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
+	
+	        	// query contact.
+	        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
+	
+	        	if (cursor.moveToFirst()) 
+	        	{
+	            	do{	
+		        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+	
+		        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+		        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+		        		
+		        		if (threadView || bitmap == null)
+		        			entry.bitmap = bitmap = BitmapFactory.decodeStream(bitmapStream);
+		        		else
+		        			entry.bitmap = bitmap;
+		        		
+					}while(cursor.moveToNext() && entry.bitmap == null);
+	        	}
+	    		cursor.close();
+			}
+    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+        	 * message.*/
+    		
+        	if (entry.bitmap == null)
+        		entry.bitmap = defaultBitmap;
+
+			if (threadView)
+    		{
+    			if (!mHashmap.containsKey(entry.senderRaw))
+    			{
+    				mHashmap.put(entry.senderRaw, entry);
+    				mTimelineArrayAdapter.add(entry);
+    			}
+    		}
+    		else
+    		{
+    			if (!mHashmap.containsKey(entry.senderRaw))
+    			{
+    				mHashmap.put(entry.senderRaw, entry);
+    			}
+    			mTimelineArrayAdapter.add(entry);
+    		}
+		}
+		db.close();
+		
+		return mTimelineArrayAdapter;
 	}
-	*/
 }

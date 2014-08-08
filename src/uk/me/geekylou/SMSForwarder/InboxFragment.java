@@ -24,8 +24,7 @@ public class InboxFragment extends Fragment {
 	protected int layout; 
 	static final int REQUEST_NEW_ENTRY = 1000;
 	String search;
-		
-	boolean threadView=true;
+
 	private TextView mStatusTextView;
 	private String mSender;
 	private MessageCache mMessages;
@@ -80,7 +79,7 @@ public class InboxFragment extends Fragment {
     	
     	Activity ctx = getActivity();
 
-    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout), mSender,threadView);
+    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, threadView), mSender,threadView);
 	
 		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
     }
@@ -107,7 +106,7 @@ public class InboxFragment extends Fragment {
     	Activity ctx = getActivity();
     	if (mMessages != null)
     	{
-    		mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout), mSender,threadView);
+    		mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, mThreadView), mSender,mThreadView);
     	
     		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
     	}

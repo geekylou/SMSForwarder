@@ -106,6 +106,7 @@ abstract class InterfaceBaseService extends Service
 		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 		broadcastIntent.putExtra("senderId", key);
 		broadcastIntent.putExtra("STATUS", new String(statusString));
+		broadcastIntent.putExtra("DBG_KEYS", connectionLocks.toString());
 		sendBroadcast(broadcastIntent);
 
 	}
@@ -306,12 +307,12 @@ abstract class InterfaceBaseService extends Service
 						return;
 					}
     			
-					if (status == THREAD_STOP_DEFERRED && mPacketQueue.isEmpty()) /* Can't only do a deferred shutdown if the output
+					if (status == THREAD_STOP_DEFERRED && mPacketQueue.isEmpty()) /* Can only do a deferred shutdown if the output
 																					 queue is empty.*/
 					{
 						Log.i("BluetoothInterfaceService", "THREAD_STOP_DEFERRED");
 						stopRunning();
-						status = THREAD_RUNNING;
+						status = THREAD_STOPPED;
 					}
 					if (!isConnected())
 					{
@@ -544,7 +545,7 @@ abstract class InterfaceBaseService extends Service
 				broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
 				broadcastIntent.putExtra("STATUS", new String(mStatusString));
 				broadcastIntent.putExtra("StatusCode", mStatusCode);
-				
+				broadcastIntent.putExtra("DBG_KEYS", connectionLocks.toString());				
 				sendBroadcast(broadcastIntent);
 		   }
 		   
@@ -559,19 +560,25 @@ abstract class InterfaceBaseService extends Service
     		   startClientConnection();
            }
 		   } catch(Exception e){e.printStackTrace();}
+
+		   String openKey = intent.getStringExtra("openKey");
+		   if (openKey != null) connectionLocks.put(openKey, openKey);
+		   
 		   String closeKey = intent.getStringExtra("closeKey");
 
 		   if (closeKey != null)
 		   {
 			   connectionLocks.remove(closeKey);
-			   if (connectionLocks.isEmpty())
-			   {
-				   mSocketThread.stopRunningDeffered();
-			   }
-			   else
-			   {
-				   mSocketThread.cancelStopRunningDeffered();
-			   }
+		   }
+		   // No one has the connection open so close the connection after the timeout.
+		   // Timeout gives us enough time to make sure everything we need to send is sent.
+		   if (connectionLocks.isEmpty())
+		   {
+			   mSocketThread.stopRunningDeffered();
+		   }
+		   else
+		   {
+			   mSocketThread.cancelStopRunningDeffered();
 		   }
 	   	}
 	}

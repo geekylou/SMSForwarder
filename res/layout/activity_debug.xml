@@ -14,14 +14,6 @@
         android:layout_height="wrap_content"
         android:text="@string/hello_world" />
 
-    <Button
-        android:id="@+id/buttonStart"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:text="Start" />
-
     <TextView
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
@@ -77,23 +69,6 @@
         android:layout_marginBottom="54dp"
         android:text="1" />
 
-    <Button
-        android:id="@+id/buttonStop"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_below="@+id/button1"
-        android:text="Stop" />
-
-    <Button
-        android:id="@+id/buttonChooser"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/buttonStop"
-        android:layout_alignBottom="@+id/buttonStop"
-        android:layout_centerHorizontal="true"
-        android:text="Select Device" />
-
     <CheckBox
         android:id="@+id/checkBoxConnect"
         android:layout_width="wrap_content"
@@ -123,15 +98,6 @@
         android:layout_marginBottom="19dp"
         android:text="Start" />
 
-    <Button
-        android:id="@+id/buttonStopIP"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/buttonStartIP"
-        android:layout_alignBottom="@+id/buttonStartIP"
-        android:layout_alignLeft="@+id/buttonStop"
-        android:text="Stop" />
-
     <EditText
         android:id="@+id/editTextPeerIP"
         android:layout_width="wrap_content"
@@ -151,21 +117,57 @@
         android:text="Connect to other TCPIP host" />
 
     <Button
-        android:id="@+id/buttonStartInboxActivity"
-        style="?android:attr/buttonStyleSmall"
+        android:id="@+id/buttonChooser"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/checkBoxIPConnect"
-        android:layout_alignLeft="@+id/checkBoxIPConnect"
-        android:text="StartInboxActivity" />
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/checkBoxConnect"
+        android:layout_toRightOf="@+id/buttonStart"
+        android:text="Select Device" />
 
     <CheckBox
         android:id="@+id/checkBoxLaunchInbox"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBaseline="@+id/buttonStartInboxActivity"
-        android:layout_alignBottom="@+id/buttonStartInboxActivity"
-        android:layout_toRightOf="@+id/buttonStartInboxActivity"
+        android:layout_alignLeft="@+id/editDBGOut"
+        android:layout_below="@+id/editDBGOut"
         android:text="Launch to Inbox" />
+
+    <Button
+        android:id="@+id/buttonStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/buttonChooser"
+        android:layout_alignParentLeft="true"
+        android:layout_alignTop="@+id/buttonChooser"
+        android:text="Start" />
+
+    <Button
+        android:id="@+id/buttonStopIP"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/editTextPeerIP"
+        android:layout_alignBottom="@+id/editTextPeerIP"
+        android:layout_alignParentRight="true"
+        android:text="Stop" />
+
+    <Button
+        android:id="@+id/buttonStop"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignTop="@+id/buttonChooser"
+        android:layout_toRightOf="@+id/buttonChooser"
+        android:text="Stop" />
+
+    <Button
+        android:id="@+id/buttonDisconnect"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/button4"
+        android:layout_alignBottom="@+id/button4"
+        android:layout_toRightOf="@+id/button4"
+        android:text="Disconnect" />
 
 </RelativeLayout>

@@ -29,7 +29,7 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
-
+	protected static final String key = "uk.me.geekylou.SMSForwarder.MainActivity";
 	protected static final int CONTACT = 0;
 	protected static final int PICK_CONTACT   = 10;
 	protected static final int PICK_BT_DEVICE = 11;
@@ -114,11 +114,11 @@ public class MainActivity extends Activity {
 		Button but1= (Button)findViewById(R.id.button1);
 		but1.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-/*        		Intent broadcastIntent = new Intent();
+        		Intent broadcastIntent = new Intent();
         		broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
         		broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
         		broadcastIntent.putExtra("requestStatus", true);
-        		sendBroadcast(broadcastIntent);*/
+        		sendBroadcast(broadcastIntent);
 
             	mProtocolHandler.sendButtonPress(MainActivity.this, 0x100,0,0);
             }
@@ -158,13 +158,14 @@ public class MainActivity extends Activity {
             }
         });	
 		
-		Button butInboxActivity = (Button)findViewById(R.id.buttonStartInboxActivity);
-		butInboxActivity.setOnClickListener(new View.OnClickListener() {
+		Button butDisconnect = (Button)findViewById(R.id.buttonDisconnect);
+		butDisconnect.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-            	Intent intent = new Intent(MainActivity.this, MainScreenActivity.class);
-				intent.setAction(intent.ACTION_VIEW);
-				startActivityForResult(intent,0);
-				// TODO Auto-generated method stub
+            	Intent broadcastIntent = new Intent();
+    			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+    			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+    			broadcastIntent.putExtra("closeKey", key);
+    			sendBroadcast(broadcastIntent);
             }
         });
 		
@@ -207,6 +208,7 @@ public class MainActivity extends Activity {
 	{	
 		CheckBox checkConnect = (CheckBox)findViewById(R.id.checkBoxConnect);
 		mBluetoothService.putExtra("CONNECT", checkConnect.isChecked());
+		mBluetoothService.putExtra("openKey", key);
 		mBluetoothService.putExtra("BT_ID", prefs.getString("BT_ID", ""));			
 
 		startService(mBluetoothService);
@@ -237,7 +239,7 @@ public class MainActivity extends Activity {
 			}
 		   @Override
 		    public void onReceive(Context context, Intent intent) {
-		       String text = intent.getStringExtra("GPS");
+		       String text = intent.getStringExtra("DBG_KEYS");
 		       if (text != null) txtGPS.setText(text);
 		       text = intent.getStringExtra("NET");
 		       if (text != null) txtLOC.setText(text);

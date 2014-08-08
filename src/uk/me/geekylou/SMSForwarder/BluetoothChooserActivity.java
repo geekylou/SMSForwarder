@@ -97,7 +97,7 @@ public class BluetoothChooserActivity<BluetoothChooser> extends Activity {
 				}
 		        if (prefs.getString("BT_ID", null) != null)
 		        {
-		        	if (prefs.getBoolean("LAUNCH_TO_INBOX", false))
+		        	if (prefs.getBoolean("LAUNCH_TO_INBOX", false) && !action.equals(Intent.ACTION_CHOOSER))
 		        	{
 						startActivity(new Intent(BluetoothChooserActivity.this,MainScreenActivity.class));
 						finish();

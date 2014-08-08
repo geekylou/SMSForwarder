@@ -21,6 +21,9 @@ import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -54,7 +57,6 @@ public class MainScreenActivity extends FragmentActivity {
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
-		mProtocolHandler.sendInboxRequest(true);
 	}
 
 	protected void onDestroy()
@@ -85,14 +87,14 @@ public class MainScreenActivity extends FragmentActivity {
 			sender = listFragment.getItem(0).sender;
 		}
 			
-		detailFragment.setMessageCache(mMessages,sender,true);
+		detailFragment.setMessageCache(mMessages,sender,false);
 		
 		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
 
 	      	  @Override
 	      	  public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
 
-	      		detailFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,true);
+	      		detailFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,false);
 	      	  }
 	      	});
 		
@@ -103,6 +105,8 @@ public class MainScreenActivity extends FragmentActivity {
             	startActivityForResult(intent, PICK_CONTACT); 
             }
         });
+		
+		mProtocolHandler.sendInboxRequest(true);
 	}
 	
 	public void onActivityResult (int requestCode, int resultCode, Intent intent) 
@@ -189,5 +193,30 @@ public class MainScreenActivity extends FragmentActivity {
 			detailFragment.refreshEntries();
 			listFragment.refreshEntries();
 		}		
+	}
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+	    // Inflate the menu items for use in the action bar
+	    MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.main, menu);
+	    return super.onCreateOptionsMenu(menu);
+	}
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    // Handle presses on the action bar items
+	    switch (item.getItemId()) {
+	        case R.id.itemDebug:
+            	Intent intent = new Intent(MainScreenActivity.this, MainActivity.class);
+				intent.setAction(intent.ACTION_INSERT);
+				startActivityForResult(intent,0);
+	        	return true;
+	        case R.id.action_settings:
+            	intent = new Intent(MainScreenActivity.this, BluetoothChooserActivity.class);
+				intent.setAction(intent.ACTION_CHOOSER);
+				startActivityForResult(intent,0);
+	        	return true;
+	        default:
+	            return super.onOptionsItemSelected(item);
+	    }
 	}
 }

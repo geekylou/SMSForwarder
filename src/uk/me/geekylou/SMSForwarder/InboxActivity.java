@@ -59,7 +59,7 @@ public class InboxActivity extends Activity {
         final Intent intent = getIntent();
         
         mProtocolHandler = new InboxProtocolHandler(this,0x104);
-        mBluetoothDeviceArrayAdapter = new ImageViewAdapter(this, R.layout.text_preview_item);
+        mBluetoothDeviceArrayAdapter = new ImageViewAdapter(this, R.layout.text_preview_item,false);
 		
         prefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
 
