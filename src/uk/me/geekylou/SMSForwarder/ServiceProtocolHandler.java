@@ -11,6 +11,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
@@ -21,6 +24,7 @@ import android.util.Log;
 public class ServiceProtocolHandler extends ProtocolHandler {
 	HashMap<String,String> mHashmap = new HashMap<String,String>();
 	private MessageCache mMessages;
+	private MediaPlayer mMediaPlayer;
 
 	static String[] mProjections = new String[] {
         ContactsContract.PhoneLookup.DISPLAY_NAME,
@@ -212,22 +216,52 @@ public class ServiceProtocolHandler extends ProtocolHandler {
 	/* Override this to handle button press events.*/
     void handleButtonPress(int buttonID,int pageNo)
     {
-    	// [TODO] this should be a placeholder and this implementation implemented in a subclass.
-    	// Also this is purely a test implementation so should do something sensible.
-    	Log.i("ProtocolHandler", "unimplemented handleButtonPress(" + buttonID + "," + pageNo);
-    	
-    	NotificationCompat.Builder mBuilder =
-			    new NotificationCompat.Builder(ctx)
-			    .setSmallIcon(R.drawable.ic_launcher)
-			    .setContentTitle("My notification")
-			    .setContentText("Hello World!");
-		
-		// Sets an ID for the notification
-		int mNotificationId = 001;
-		// Gets an instance of the NotificationManager service
-		NotificationManager mNotifyMgr = 
-		        (NotificationManager) ctx.getSystemService(ctx.NOTIFICATION_SERVICE);
-		// Builds the notification and issues it.
-		mNotifyMgr.notify(mNotificationId, mBuilder.build());
+    	switch(buttonID)
+    	{
+    	case 1:
+    		if(mMediaPlayer != null)
+    		{
+    			mMediaPlayer.stop();
+    			mMediaPlayer = null;
+    		}
+    		try {
+    			Uri alert =  RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+    			
+    			mMediaPlayer = new MediaPlayer();
+    			mMediaPlayer.setDataSource(ctx, alert);
+    			final AudioManager audioManager = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
+    			if (audioManager.getStreamVolume(AudioManager.STREAM_RING) != 0) {
+    				mMediaPlayer.setAudioStreamType(AudioManager.STREAM_RING);
+    				mMediaPlayer.setLooping(true);
+    				mMediaPlayer.prepare();
+    				mMediaPlayer.start();
+    			}
+    		} catch(Exception e) {
+    		}
+    		break;
+    	case 2:
+    		if(mMediaPlayer != null)
+    		{
+    			mMediaPlayer.stop();
+    			mMediaPlayer = null;
+    		}
+    		break;
+    	default:
+	    	Uri soundURI = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+	    	
+	    	NotificationCompat.Builder mBuilder =
+				    new NotificationCompat.Builder(ctx)
+				    .setSmallIcon(R.drawable.ic_launcher)
+				    .setContentTitle("Notification")
+				    .setContentText("User generated alert!")
+					.setSound(soundURI);
+			// Sets an ID for the notification
+			int mNotificationId = 001;
+			// Gets an instance of the NotificationManager service
+			NotificationManager mNotifyMgr = 
+			        (NotificationManager) ctx.getSystemService(ctx.NOTIFICATION_SERVICE);
+			// Builds the notification and issues it.
+			mNotifyMgr.notify(mNotificationId, mBuilder.build());
+    	}
     }
 }

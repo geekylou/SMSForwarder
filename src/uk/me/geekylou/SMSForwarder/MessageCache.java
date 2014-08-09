@@ -51,7 +51,7 @@ public class MessageCache extends SQLiteOpenHelper
 		//db.execSQL("CREATE TABLE " + TABLE_NAME_UUID + " ("+
         //        "_id INTEGER PRIMARY KEY," +
 		//		"address CHAR(40)," +
-        //        "uuid CHAR(40);");
+        //        "key CHAR(40);");
     }
 
 	
