@@ -52,17 +52,18 @@ public class TimelineFragment extends InboxFragment
         	String key = "uk.me.geekylou.SMSForwarder.TimeLineFragment";
         	Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
 	        bluetoothService.putExtra("openKey",key);
-	        
-	    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
-//			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
 
-	    	ctx.startService(bluetoothService);
+	        // With auto-connection we shouldn't ever need to start the service to send a SMS so disable this.
+//	    	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
+			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
+
+	    	//ctx.startService(bluetoothService);
 	    	
-	    	Intent broadcastIntent = new Intent();
-			broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
-			broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
-			broadcastIntent.putExtra("closeKey", key);
-			ctx.sendBroadcast(broadcastIntent);
+	    	//Intent broadcastIntent = new Intent();
+			//broadcastIntent.setAction(InterfaceBaseService.SEND_PACKET);
+			//broadcastIntent.addCategory(Intent.CATEGORY_DEFAULT);
+			//broadcastIntent.putExtra("closeKey", key);
+			//ctx.sendBroadcast(broadcastIntent);
 	    	
 			InboxEntry entry     = new InboxEntry();
 			

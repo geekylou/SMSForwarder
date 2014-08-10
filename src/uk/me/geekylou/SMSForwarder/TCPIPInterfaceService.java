@@ -67,6 +67,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
         
     	// We want this service to continue running until it is explicitly
         // stopped, so return sticky.
+		connectionLocks.put("TCPIPInterfaceService", "TCPIPInterfaceService");
         return START_STICKY;
     }
 		
