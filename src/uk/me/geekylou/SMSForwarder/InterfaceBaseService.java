@@ -202,6 +202,7 @@ abstract class InterfaceBaseService extends Service
 
             		out = null;
     				statusUpdate("Disconnected.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+    				stopRunningDeffered();
         		}
         	}
         	
@@ -313,11 +314,12 @@ abstract class InterfaceBaseService extends Service
 						Log.i("BluetoothInterfaceService", "THREAD_STOP_DEFERRED");
 						stopRunning();
 						status = THREAD_STOPPED;
-					}
-					if (!isConnected())
-					{
 						return;
 					}
+					/*if (!isConnected())
+					{
+						return;
+					}*/
     			}
     		}
     	}
