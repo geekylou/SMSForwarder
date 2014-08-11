@@ -7,6 +7,7 @@ import java.util.HashMap;
 import uk.me.geekylou.SMSForwarder.InboxActivity.InboxProtocolHandler;
 import uk.me.geekylou.SMSForwarder.InboxActivity.ResponseReceiver;
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.Context;
@@ -20,6 +21,8 @@ import android.provider.Contacts;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -28,14 +31,14 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 
-public class MainScreenActivity extends FragmentActivity {
+public class MainScreenActivity extends ActionBarActivity {
 	protected static final int PICK_CONTACT = 0;
 	private MainScreenProtocolHandler mProtocolHandler;
 	private MessageCache mMessages;
 	private ResponseReceiver receiver;
 	
 	private InboxFragment listFragment;
-	private TimelineFragment detailFragment;
+	private InboxFragment detailFragment = null;
 
 	String  sender;
 	
@@ -43,20 +46,31 @@ public class MainScreenActivity extends FragmentActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+
+		// Check that the activity is using the layout version with
+        // the fragment_container FrameLayout
+        if (findViewById(R.id.detailFragment) != null) 
+        {
+            // However, if we're being restored from a previous state,
+            // then we don't need to do anything and should return or else
+            // we could end up with overlapping fragments.
+            if (savedInstanceState != null) {
+                return;
+            }
+            
+            detailFragment = new TimelineFragment();
 		
+            getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, detailFragment).commit();
+        }
 		mMessages        = new MessageCache(this);
 		mProtocolHandler = new MainScreenProtocolHandler(this,0x104);
-		
-		//Intent intent = getIntent();
-		
-		/* Start service with a request for the inbox on the peer.*/
-        //Intent bluetoothService = new Intent(this,BluetoothInterfaceService.class);
-		
+				
 		/* Start listening for replies before doing anything else.*/
 		IntentFilter filter = new IntentFilter(InterfaceBaseService.PACKET_RECEIVED);
 		filter.addCategory(Intent.CATEGORY_DEFAULT);
     	receiver = new ResponseReceiver();
 		registerReceiver(receiver, filter);
+		mProtocolHandler.sendInboxRequest(true);
 	}
 
 	protected void onDestroy()
@@ -76,17 +90,17 @@ public class MainScreenActivity extends FragmentActivity {
 	{
 		super.onResume();
 		
-		listFragment = (InboxFragment) (getFragmentManager().findFragmentById(R.id.listFragment));
+		listFragment = (InboxFragment) (getSupportFragmentManager().findFragmentById(R.id.listFragment));
 		listFragment.setMessageCache(mMessages,null,true);
 
-		detailFragment = (TimelineFragment) (getFragmentManager().findFragmentById(R.id.detailFragment));
 		
 		InboxEntry item = listFragment.getItem(0);
 		if (item != null && sender == null)
 		{
 			sender = listFragment.getItem(0).sender;
 		}
-			
+		
+		//detailFragment = (TimelineFragment) (getSupportFragmentManager().findFragmentById(R.id.detailFragment));	
 		detailFragment.setMessageCache(mMessages,sender,false);
 		
 		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
@@ -97,28 +111,20 @@ public class MainScreenActivity extends FragmentActivity {
 	      		detailFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,false);
 	      	  }
 	      	});
-		
-		listFragment.setNewContactListener(new View.OnClickListener() {
-            public void onClick(View v) {
-            	@SuppressWarnings("deprecation")
-				Intent intent = new Intent(Intent.ACTION_PICK, Contacts.Phones.CONTENT_URI);
-            	startActivityForResult(intent, PICK_CONTACT); 
-            }
-        });
-		
-		mProtocolHandler.sendInboxRequest(true);
+				
+		mProtocolHandler.sendInboxRequest(false);
 	}
 	
 	public void onActivityResult (int requestCode, int resultCode, Intent intent) 
 	{
-		if (resultCode != Activity.RESULT_OK || requestCode != PICK_CONTACT) return;
+		if (resultCode != Activity.RESULT_OK || requestCode != PICK_CONTACT || detailFragment == null) return;
 		Cursor c = managedQuery(intent.getData(), null, null, null, null);
 		if (c.moveToFirst()) 
 		{
 		  sender  = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.DISPLAY_NAME));
 		  String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
 		  
-		  detailFragment.messageToNewContact(mMessages,sender,phone,true);
+		  //detailFragment.messageToNewContact(mMessages,sender,phone,true);
 		}
 	}
 	
@@ -155,12 +161,13 @@ public class MainScreenActivity extends FragmentActivity {
 		        bluetoothService.putExtra("openKey",openKey);
 		        
 		    	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
-		    	/* Kludge to make TCPIP Service work.*/
 			
 		 		ctx.startService(bluetoothService);
 			}
-	 		
-	    	sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+			else
+			{
+				sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+			}
 		}
 		
 		void closeConnection()
@@ -197,14 +204,28 @@ public class MainScreenActivity extends FragmentActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 	    // Inflate the menu items for use in the action bar
-	    MenuInflater inflater = getMenuInflater();
-	    inflater.inflate(R.menu.main, menu);
+		// For some reason this method works unlike the one commented out below???
+		new MenuInflater(getApplication()).inflate(R.menu.main, menu);
+	    
+		/*MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.main, menu);*/
 	    return super.onCreateOptionsMenu(menu);
 	}
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 	    // Handle presses on the action bar items
 	    switch (item.getItemId()) {
+	    	case R.id.add_contact:
+	    		FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+
+	    		// Replace whatever is in the fragment_container view with this fragment,
+	    		// and add the transaction to the back stack so the user can navigate back
+	    		NewContactTimelineFragment newContactFragment = new NewContactTimelineFragment();
+	    		
+	    		transaction.replace(R.id.detailFragment, newContactFragment);
+	    		transaction.commit();
+	    		detailFragment = newContactFragment;
+	    		return true;
 	        case R.id.itemDebug:
             	Intent intent = new Intent(MainScreenActivity.this, MainActivity.class);
 				intent.setAction(intent.ACTION_INSERT);

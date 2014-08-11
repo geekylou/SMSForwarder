@@ -189,20 +189,27 @@ abstract class InterfaceBaseService extends Service
 
         			if (!server && running == THREAD_RUNNING)
     				{
-    					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
-    					try {
-    						sleep(4000);
-    					} catch (InterruptedException e) 
-    					{
-    						/* There's not anything worth doing here if we get an interrupted exception.*/
-    					}
+        				if (mOutputThread.status == THREAD_STOP_DEFERRED)
+        				{
+        					mOutputThread.status = THREAD_STOPPED;
+        					running              = THREAD_STOPPED;
+        				}
+        				else
+        				{
+        					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+        					try {
+        						sleep(4000);
+        					} catch (InterruptedException e) 
+        					{
+        						/* There's not anything worth doing here if we get an interrupted exception.*/
+        					}
+        				}
     				}		
 
         			isOpen = false;
 
             		out = null;
     				statusUpdate("Disconnected.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
-    				stopRunningDeffered();
         		}
         	}
         	
@@ -293,8 +300,6 @@ abstract class InterfaceBaseService extends Service
     						e.printStackTrace();
     					} catch (IOException e) {
     						e.printStackTrace();
-    						if (!isConnected())
-    							return;
 						}
     	   			}
     				

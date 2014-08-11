@@ -12,6 +12,7 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.provider.Contacts;
 import android.provider.ContactsContract;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
@@ -21,6 +22,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
+import android.support.v7.app.ActionBarActivity;
 import android.text.format.Formatter;
 import android.view.Menu;
 import android.view.View;
@@ -28,7 +30,7 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
-public class MainActivity extends Activity {
+public class MainActivity extends ActionBarActivity {
 	protected static final String key = "uk.me.geekylou.SMSForwarder.MainActivity";
 	protected static final int CONTACT = 0;
 	protected static final int PICK_CONTACT   = 10;

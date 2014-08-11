@@ -10,13 +10,12 @@
         android:layout_height="match_parent"
         class="uk.me.geekylou.SMSForwarder.InboxFragment" ></fragment>
 	
-    <fragment
+    <FrameLayout
         android:id="@+id/detailFragment"
         android:layout_width="0dp"
         android:layout_weight="2"
-        android:layout_height="match_parent"
-        class="uk.me.geekylou.SMSForwarder.TimelineFragment" >
+        android:layout_height="match_parent">
         <!-- Preview: layout=@layout/details -->
-    </fragment>
+    </FrameLayout>
 
 </LinearLayout>

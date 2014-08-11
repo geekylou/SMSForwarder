@@ -3,12 +3,13 @@ package uk.me.geekylou.SMSForwarder;
 import uk.me.geekylou.SMSForwarder.R;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -106,10 +107,24 @@ public class InboxFragment extends Fragment {
     	Activity ctx = getActivity();
     	if (mMessages != null)
     	{
-    		mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, mThreadView), mSender,mThreadView);
+    		/*mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, mThreadView), mSender,mThreadView);
     	
-    		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
+    		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);*/
+    		new BackgroundRefresh().execute(new ImageViewAdapter(ctx, layout, mThreadView));
     	}
+    }
+    
+    private class BackgroundRefresh extends AsyncTask<ArrayAdapter<InboxEntry>, ArrayAdapter<InboxEntry>, ArrayAdapter<InboxEntry>> {
+
+        @Override
+        protected ArrayAdapter<InboxEntry> doInBackground(ArrayAdapter<InboxEntry>... adapter) {
+        	return mMessages.getTimeline(adapter[0],mSender,mThreadView);
+        }
+
+        @Override
+        protected void onPostExecute(ArrayAdapter<InboxEntry> values) {
+    		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
+        }
     }
     
     class ResponseReceiver extends BroadcastReceiver {
@@ -123,11 +138,5 @@ public class InboxFragment extends Fragment {
 		   //String status = intent.getStringExtra("STATUS");
 	       //if (status != null) mStatusTextView.setText(status);
 	    }
-	}
-
-	public void setNewContactListener(OnClickListener onClickListener) {
-		// TODO Auto-generated method stub
-		Button button = (Button)getView().findViewById(R.id.buttonNewThread);
-		button.setOnClickListener(onClickListener);
 	}
 }
