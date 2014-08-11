@@ -21,7 +21,7 @@ import android.widget.TextView;
 import android.view.LayoutInflater;
 
 public class InboxFragment extends Fragment {
-	private ListView mInboxEntriesView = null;
+	protected ListView mInboxEntriesView = null;
 	protected int layout; 
 	static final int REQUEST_NEW_ENTRY = 1000;
 	String search;
@@ -30,7 +30,7 @@ public class InboxFragment extends Fragment {
 	private String mSender;
 	private MessageCache mMessages;
 	private ResponseReceiver mResponseReceiver;
-	private boolean mThreadView;
+	protected boolean mThreadView;
 	ArrayAdapter<InboxEntry> mInboxEntriesAdapter;
 	
 	public InboxFragment()

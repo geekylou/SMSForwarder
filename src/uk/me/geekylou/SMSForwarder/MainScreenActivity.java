@@ -30,9 +30,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ImageButton;
 
 public class MainScreenActivity extends ActionBarActivity {
-	protected static final int PICK_CONTACT = 0;
+	protected static final int PICK_CONTACT = 10000;
 	private MainScreenProtocolHandler mProtocolHandler;
 	private MessageCache mMessages;
 	private ResponseReceiver receiver;
@@ -58,7 +59,7 @@ public class MainScreenActivity extends ActionBarActivity {
                 return;
             }
             
-            detailFragment = new TimelineFragment();
+            if (detailFragment==null) detailFragment = new TimelineFragment();
 		
             getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, detailFragment).commit();
         }
@@ -100,8 +101,8 @@ public class MainScreenActivity extends ActionBarActivity {
 			sender = listFragment.getItem(0).sender;
 		}
 		
-		//detailFragment = (TimelineFragment) (getSupportFragmentManager().findFragmentById(R.id.detailFragment));	
-		detailFragment.setMessageCache(mMessages,sender,false);
+		detailFragment = (InboxFragment) (getSupportFragmentManager().findFragmentById(R.id.detailFragment));	
+		//detailFragment.setMessageCache(mMessages,sender,false);
 		
 		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
 
@@ -124,7 +125,7 @@ public class MainScreenActivity extends ActionBarActivity {
 		  sender  = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.DISPLAY_NAME));
 		  String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
 		  
-		  //detailFragment.messageToNewContact(mMessages,sender,phone,true);
+		  ((NewContactTimelineFragment)detailFragment).messageToNewContact(mMessages, sender, phone, false);
 		}
 	}
 	
@@ -221,9 +222,18 @@ public class MainScreenActivity extends ActionBarActivity {
 	    		// Replace whatever is in the fragment_container view with this fragment,
 	    		// and add the transaction to the back stack so the user can navigate back
 	    		NewContactTimelineFragment newContactFragment = new NewContactTimelineFragment();
-	    		
+
 	    		transaction.replace(R.id.detailFragment, newContactFragment);
 	    		transaction.commit();
+
+	    		newContactFragment.setSearchOnClickListener(new View.OnClickListener() {
+					@Override
+					public void onClick(View v) {
+						@SuppressWarnings("deprecation")
+						Intent intent = new Intent(Intent.ACTION_PICK, Contacts.Phones.CONTENT_URI);
+		            	startActivityForResult(intent, PICK_CONTACT);
+					}
+		        });
 	    		detailFragment = newContactFragment;
 	    		return true;
 	        case R.id.itemDebug:
