@@ -8,6 +8,7 @@ import java.util.UUID;
 import android.app.NotificationManager;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -125,7 +126,7 @@ public class ServiceProtocolHandler extends ProtocolHandler {
 					
 					if (dateField >= requestDate)
 					{
-						sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE,
+						sendSMSMessage(ctx, new Intent(),0x100,SMS_MESSAGE_TYPE_RESPONSE,
 								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
 								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
 								cursor.getString(cursor.getColumnIndexOrThrow("body")),
@@ -134,7 +135,7 @@ public class ServiceProtocolHandler extends ProtocolHandler {
 					
 				}while(cursor.moveToNext());
 
-				sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST,"","",0);				
+				sendSMSMessage(ctx, new Intent(),0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST,"","",0);				
 			}
 			break;
     	case SMS_MESSAGE_TYPE_RESPONSE:
@@ -196,7 +197,7 @@ public class ServiceProtocolHandler extends ProtocolHandler {
 					
 					if (dateField >= requestDate)
 					{
-						sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_RESPONSE_SENT,
+						sendSMSMessage(ctx, new Intent(),0x100,SMS_MESSAGE_TYPE_RESPONSE_SENT,
 								cursor.getInt(cursor.getColumnIndexOrThrow("_id")),
 								cursor.getString(cursor.getColumnIndexOrThrow("address")), 
 								cursor.getString(cursor.getColumnIndexOrThrow("body")),
@@ -204,12 +205,12 @@ public class ServiceProtocolHandler extends ProtocolHandler {
 					}
 				}while(cursor.moveToNext());
 				
-				sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST_SENT,"","",0);
+				sendSMSMessage(ctx, new Intent(), 0x100,SMS_MESSAGE_TYPE_DONE,SMS_MESSAGE_TYPE_REQUEST_SENT,"","",0);
 			}
 			break;
     	case SMS_MESSAGE_TYPE_DONE:
 			if(id == SMS_MESSAGE_TYPE_REQUEST)
-    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,"","",0);
+    			sendSMSMessage(ctx, new Intent(), 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,"","",0);
     	}
 		return false;
     }
@@ -253,8 +254,8 @@ public class ServiceProtocolHandler extends ProtocolHandler {
 				    new NotificationCompat.Builder(ctx)
 				    .setSmallIcon(R.drawable.ic_launcher)
 				    .setContentTitle("Notification")
-				    .setContentText("User generated alert!")
-					.setSound(soundURI);
+				    .setContentText("User generated alert!");
+//					.setSound(soundURI);
 			// Sets an ID for the notification
 			int mNotificationId = 001;
 			// Gets an instance of the NotificationManager service

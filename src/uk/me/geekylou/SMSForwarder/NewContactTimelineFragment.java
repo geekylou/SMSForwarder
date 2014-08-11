@@ -42,7 +42,7 @@ public class NewContactTimelineFragment extends InboxFragment
         super.onActivityCreated(savedInstanceState);
 		layout = R.layout.text_preview_item;
         
-        Button buttonSend = (Button) getView().findViewById(R.id.buttonSend);
+        ImageButton buttonSend = (ImageButton) getView().findViewById(R.id.imageButtonSend);
         buttonSend.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 
@@ -55,7 +55,7 @@ public class NewContactTimelineFragment extends InboxFragment
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x100);
         	
         	Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) addressTextView.getText().toString(),  message,new Date().getTime());
+			mProtocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) addressTextView.getText().toString(),  message,new Date().getTime());
 	    	
 			InboxEntry entry     = new InboxEntry();
 			

@@ -258,7 +258,7 @@ public class MainActivity extends ActionBarActivity {
 		     String phone = c.getString(c.getColumnIndexOrThrow(Contacts.Phones.NUMBER));
 		     // yay
 		     
-         	mProtocolHandler.sendSMSMessage(MainActivity.this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, phone, "This is a test sms message triggered using a button",new Date().getTime());
+         	mProtocolHandler.sendSMSMessage(MainActivity.this,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_NOTIFICATION,0, phone, "This is a test sms message triggered using a button",new Date().getTime());
 
 		  }
 	}

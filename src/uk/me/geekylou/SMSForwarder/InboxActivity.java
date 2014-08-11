@@ -82,7 +82,7 @@ public class InboxActivity extends Activity {
 		if(search == null) search="";
     	mProtocolHandler.populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
     	/* cludge to make TCPIP Service work.*/
-    	mProtocolHandler.sendSMSMessage(this,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
+    	mProtocolHandler.sendSMSMessage(this,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, search, "",0);
 	
  		startService(bluetoothService);
 		
@@ -204,7 +204,7 @@ public class InboxActivity extends Activity {
 	            break;
 	    	case SMS_MESSAGE_TYPE_DONE:
 	    		if(id == SMS_MESSAGE_TYPE_REQUEST)
-	    			sendSMSMessage(ctx, 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,search,"",0);
+	    			sendSMSMessage(ctx, new Intent(), 0x100,SMS_MESSAGE_TYPE_REQUEST_SENT,0,search,"",0);
 	    	}
 	    	return false;
     	}

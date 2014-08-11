@@ -39,7 +39,10 @@ public class MainScreenActivity extends ActionBarActivity {
 	private ResponseReceiver receiver;
 	
 	private InboxFragment listFragment;
-	private InboxFragment detailFragment = null;
+	private InboxFragment detailFragment = null; // The currently selected detail fragment.  Will change type depending on if this is a
+	// new contact or not.
+	
+	private TimelineFragment timeLineFragment = null;
 
 	String  sender;
 	
@@ -59,9 +62,9 @@ public class MainScreenActivity extends ActionBarActivity {
                 return;
             }
             
-            if (detailFragment==null) detailFragment = new TimelineFragment();
+            if (timeLineFragment==null) timeLineFragment = new TimelineFragment();
 		
-            getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, detailFragment).commit();
+            getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, timeLineFragment).commit();
         }
 		mMessages        = new MessageCache(this);
 		mProtocolHandler = new MainScreenProtocolHandler(this,0x104);
@@ -101,15 +104,22 @@ public class MainScreenActivity extends ActionBarActivity {
 			sender = listFragment.getItem(0).sender;
 		}
 		
-		detailFragment = (InboxFragment) (getSupportFragmentManager().findFragmentById(R.id.detailFragment));	
+		//detailFragment = (InboxFragment) (getSupportFragmentManager().findFragmentById(R.id.detailFragment));	
 		//detailFragment.setMessageCache(mMessages,sender,false);
 		
 		listFragment.setOnClickListener(new AdapterView.OnItemClickListener() {
 
 	      	  @Override
 	      	  public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
+	      		
+	      		FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
-	      		detailFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,false);
+	    		// Replace whatever is in the fragment_container view with this fragment,
+	    		transaction.replace(R.id.detailFragment, timeLineFragment);
+	    		transaction.commit();
+	    		
+	      		timeLineFragment.setMessageCache(mMessages,listFragment.getItem(position).sender,false);
+	      		detailFragment = timeLineFragment;
 	      	  }
 	      	});
 				
@@ -167,7 +177,9 @@ public class MainScreenActivity extends ActionBarActivity {
 			}
 			else
 			{
-				sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+				Intent intent = new Intent();
+				intent.putExtra("openKey",openKey);
+				sendSMSMessage(ctx,intent,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
 			}
 		}
 		
@@ -198,7 +210,7 @@ public class MainScreenActivity extends ActionBarActivity {
 
 		void updateFinished()
 		{
-			detailFragment.refreshEntries();
+			if(detailFragment != null) detailFragment.refreshEntries();
 			listFragment.refreshEntries();
 		}		
 	}

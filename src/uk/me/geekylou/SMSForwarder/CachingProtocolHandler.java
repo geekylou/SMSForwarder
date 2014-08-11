@@ -36,7 +36,7 @@ abstract public class CachingProtocolHandler extends ProtocolHandler {
         
     	populateSMSMessageIntent(bluetoothService,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
     	/* Kludge to make TCPIP Service work.*/
-    	sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
+    	sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_REQUEST,0, "", "", latestMessageDate);
 	
  		ctx.startService(bluetoothService);		
 	}

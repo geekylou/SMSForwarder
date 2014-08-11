@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -37,7 +38,7 @@ public class TimelineFragment extends InboxFragment
         super.onActivityCreated(savedInstanceState);
 		layout = R.layout.text_preview_item;
         
-        Button buttonSend = (Button) getView().findViewById(R.id.buttonSend);
+        ImageButton buttonSend = (ImageButton) getView().findViewById(R.id.imageButtonSend);
         buttonSend.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
 
@@ -50,7 +51,7 @@ public class TimelineFragment extends InboxFragment
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x100);
         	
         	Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-			mProtocolHandler.sendSMSMessage(ctx,0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
+			mProtocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
 	    	
 			InboxEntry entry     = new InboxEntry();
 			

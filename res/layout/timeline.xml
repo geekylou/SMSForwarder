@@ -3,24 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <Button
-        android:id="@+id/buttonSend"
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/multiAutoCompleteTextViewSMS"
-        android:text="Send" />
-
    <MultiAutoCompleteTextView
-        android:id="@+id/multiAutoCompleteTextViewSMS"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_toLeftOf="@+id/buttonSend"
-        android:ems="10" >
+       android:id="@+id/multiAutoCompleteTextViewSMS"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"
+       android:layout_alignParentBottom="true"
+       android:layout_alignParentLeft="true"
+       android:layout_toLeftOf="@+id/imageButtonSend"
+       android:ems="10" >
+
     </MultiAutoCompleteTextView>
 
     <ListView
@@ -29,7 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/multiAutoCompleteTextViewSMS"
         android:layout_alignParentLeft="true"
-        android:layout_below="@+id/spinner1">
+        android:layout_below="@+id/spinner1" >
 
     </ListView>
 
@@ -50,5 +41,14 @@
         android:layout_alignParentTop="true"
         android:text="Sender"
         android:textAppearance="?android:attr/textAppearanceMedium" />
+
+    <ImageButton
+        android:id="@+id/imageButtonSend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/listView1"
+        android:src="@android:drawable/ic_menu_send" />
 
 </RelativeLayout>

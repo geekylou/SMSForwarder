@@ -127,9 +127,9 @@ public class ProtocolHandler
 		return outStr.toByteArray();
 	}
 	
-	void sendSMSMessage(Context ctx, int destination,int type,int id,String sender, String payload,long date)
+	void sendSMSMessage(Context ctx, Intent intent, int destination,int type,int id,String sender, String payload,long date)
 	{
-		Intent intent  = populateSMSMessageIntent(new Intent(), destination, type, id, sender, payload, date);
+		intent  = populateSMSMessageIntent(intent, destination, type, id, sender, payload, date);
 		if (intent != null) ctx.sendBroadcast(intent);
 	}
 	

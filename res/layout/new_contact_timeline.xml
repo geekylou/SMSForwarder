@@ -3,23 +3,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
 
-    <Button
-        android:id="@+id/buttonSend"
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/multiAutoCompleteTextViewSMS"
-        android:text="Send" />
-
     <MultiAutoCompleteTextView
         android:id="@+id/multiAutoCompleteTextViewSMS"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_toLeftOf="@+id/buttonSend"
+        android:layout_toLeftOf="@+id/imageButtonSend"
         android:ems="10" >
     </MultiAutoCompleteTextView>
 
@@ -32,14 +22,6 @@
         android:layout_below="@+id/imageButtonSearch" >
 
     </ListView>
-
-    <ImageButton
-        android:id="@+id/imageButtonSearch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/buttonSend"
-        android:layout_alignParentTop="true"
-        android:src="@android:drawable/ic_menu_search" />
 
     <TextView
         android:id="@+id/textViewSender"
@@ -61,5 +43,21 @@
         android:layout_toRightOf="@+id/textViewSender"
         android:ems="10"
         android:inputType="phone" />
+
+    <ImageButton
+        android:id="@+id/imageButtonSend"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/listView1"
+        android:src="@android:drawable/ic_menu_send" />
+
+    <ImageButton
+        android:id="@+id/imageButtonSearch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:src="@android:drawable/ic_menu_search" />
 
 </RelativeLayout>
