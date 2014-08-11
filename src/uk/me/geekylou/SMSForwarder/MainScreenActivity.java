@@ -7,7 +7,6 @@ import java.util.HashMap;
 import uk.me.geekylou.SMSForwarder.InboxActivity.InboxProtocolHandler;
 import uk.me.geekylou.SMSForwarder.InboxActivity.ResponseReceiver;
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
 import android.content.Context;

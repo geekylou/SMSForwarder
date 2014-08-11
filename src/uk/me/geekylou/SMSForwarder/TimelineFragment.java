@@ -3,7 +3,6 @@ package uk.me.geekylou.SMSForwarder;
 import java.util.Date;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telephony.PhoneNumberUtils;

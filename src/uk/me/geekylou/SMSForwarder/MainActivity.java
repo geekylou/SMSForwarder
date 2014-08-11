@@ -12,7 +12,6 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.provider.Contacts;
 import android.provider.ContactsContract;
-import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
