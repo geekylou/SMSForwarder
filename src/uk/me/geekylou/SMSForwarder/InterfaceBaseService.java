@@ -147,7 +147,8 @@ abstract class InterfaceBaseService extends Service
     	class InputThread extends Thread
     	{
         	int running = 0; // Set to true before starting the thread and false when stopping the thread.
-
+        	private int timeWait = 4000;
+        	
         	public void run()
         	{
         		running = THREAD_RUNNING;
@@ -180,6 +181,8 @@ abstract class InterfaceBaseService extends Service
         					mOutputThread.waitObj.notify();
         				}
         				
+        				timeWait = 4000; // We successful connected so reset the time out.
+        				
         				handleConnection();
 
         			} catch (IOException e) {
@@ -189,16 +192,21 @@ abstract class InterfaceBaseService extends Service
 
         			if (!server && running == THREAD_RUNNING)
     				{
+        				// If we can't keep the connection open then don't bother trying to retry connecting just to send an old request.
         				if (mOutputThread.status == THREAD_STOP_DEFERRED)
         				{
         					mOutputThread.status = THREAD_STOPPED;
         					running              = THREAD_STOPPED;
+        	        		mInputThread 		 = null;
         				}
         				else
         				{
-        					statusUpdate("Waiting to reconnect.", CONNECTION_STATUS_WAITING_FOR_CONNECTION);
+        					statusUpdate("Waiting to reconnect."+Integer.toString(timeWait), CONNECTION_STATUS_WAITING_FOR_CONNECTION);
         					try {
-        						sleep(4000);
+        						sleep(timeWait);
+        						// If we don't get as far as connecting then implement binary exponential backoff by doubling the timout
+        						// next time.
+        						timeWait *= 2;
         					} catch (InterruptedException e) 
         					{
         						/* There's not anything worth doing here if we get an interrupted exception.*/
@@ -310,7 +318,6 @@ abstract class InterfaceBaseService extends Service
     						Log.i("BluetoothInterfaceService", "THREAD notified.");
     					}
 					} catch (InterruptedException e) {
-						return;
 					}
     			
 					if (status == THREAD_STOP_DEFERRED && mPacketQueue.isEmpty()) /* Can only do a deferred shutdown if the output
@@ -321,10 +328,6 @@ abstract class InterfaceBaseService extends Service
 						status = THREAD_STOPPED;
 						return;
 					}
-					/*if (!isConnected())
-					{
-						return;
-					}*/
     			}
     		}
     	}
