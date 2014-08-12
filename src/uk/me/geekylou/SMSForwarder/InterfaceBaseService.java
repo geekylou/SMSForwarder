@@ -59,7 +59,7 @@ abstract class InterfaceBaseService extends Service
 	public static final int CONNECTION_STATUS_CONNECTING             = 2;
 	public static final int CONNECTION_STATUS_CONNECTED 			 = 3;
 	
-	void initListeners(Context context, Intent intent)
+	void initListeners(Context context)
 	{
 		// Register intents for both IPC from other Activity to activity on other host and system events
 		// we want to notify the other host of.
@@ -516,7 +516,7 @@ abstract class InterfaceBaseService extends Service
               case TelephonyManager.CALL_STATE_RINGING:
               // called when someone is ringing to this phone
 
-        	  
+              if (incomingNumber == null) incomingNumber = "Unknown (null)"; 
     		  try {
 					// No point in just looping back an intent to be handled by ourselves so create
 					// a message ourselves and inject it into the output stream.

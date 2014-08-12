@@ -34,7 +34,7 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("LocalService", "Received start id " + startId + ": " + intent);
 
-        Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", true)), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, "Service Started" + intent.getStringExtra("BT_ID") + Boolean.toString(intent.getBooleanExtra("CONNECT", true)), Toast.LENGTH_SHORT).show();
         
 		if(mServerSocketThread.mInputThread == null)
 		{
@@ -52,7 +52,7 @@ public class BluetoothInterfaceService extends InterfaceBaseService
     	        return START_STICKY;
     		}
 
-    		initListeners(this,intent);
+    		initListeners(this);
     		
     		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
             if (intent.getBooleanExtra("CONNECT", true))

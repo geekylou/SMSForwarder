@@ -27,8 +27,8 @@ public class InboxFragment extends Fragment {
 	String search;
 
 	private TextView mStatusTextView;
-	private String mSender;
-	private MessageCache mMessages;
+	protected String mSender;
+	protected MessageCache mMessages;
 	private ResponseReceiver mResponseReceiver;
 	protected boolean mThreadView;
 	ArrayAdapter<InboxEntry> mInboxEntriesAdapter;
@@ -61,7 +61,9 @@ public class InboxFragment extends Fragment {
     	mResponseReceiver = new ResponseReceiver();
     	ctx.registerReceiver(mResponseReceiver, filter);
  		
-		mInboxEntriesView = (ListView) getView().findViewById(R.id.listView1);      		
+		mInboxEntriesView = (ListView) getView().findViewById(R.id.listView1);
+		
+		refreshEntries();
     }
         
     public void onDestroy()
@@ -76,13 +78,7 @@ public class InboxFragment extends Fragment {
     {
     	mThreadView = threadView;
     	mSender     = Sender;
-    	mMessages   = messages;
-    	
-    	Activity ctx = getActivity();
-
-    	mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, threadView), mSender,threadView);
-	
-		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
+    	mMessages   = messages;    	
     }
     
     void setOnClickListener(AdapterView.OnItemClickListener onClickListener)
@@ -92,7 +88,7 @@ public class InboxFragment extends Fragment {
     
     InboxEntry getItem(int position)
     {
-    	if (mInboxEntriesAdapter.getCount() > 0)
+    	if (mInboxEntriesAdapter != null && mInboxEntriesAdapter.getCount() > 0)
     	{
     		return mInboxEntriesAdapter.getItem(position);
     	}
@@ -107,11 +103,17 @@ public class InboxFragment extends Fragment {
     	Activity ctx = getActivity();
     	if (mMessages != null)
     	{
-    		/*mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, mThreadView), mSender,mThreadView);
+    		//mInboxEntriesAdapter = mMessages.getTimeline(new ImageViewAdapter(ctx, layout, mThreadView), mSender,mThreadView);
     	
-    		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);*/
+    		//mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
     		new BackgroundRefresh().execute(new ImageViewAdapter(ctx, layout, mThreadView));
     	}
+    }
+
+    // The timeline is loaded so do any post load setup here.
+    protected void refreshEntriesDone()
+    {
+    	
     }
     
     private class BackgroundRefresh extends AsyncTask<ArrayAdapter<InboxEntry>, ArrayAdapter<InboxEntry>, ArrayAdapter<InboxEntry>> {
@@ -123,7 +125,9 @@ public class InboxFragment extends Fragment {
 
         @Override
         protected void onPostExecute(ArrayAdapter<InboxEntry> values) {
+        	mInboxEntriesAdapter = values;
     		mInboxEntriesView.setAdapter(mInboxEntriesAdapter);
+    		refreshEntriesDone();
         }
     }
     

@@ -20,6 +20,7 @@ import android.widget.TextView;
 public class TimelineFragment extends InboxFragment
 {	
 	private InboxEntry baseEntry;
+	private boolean    fieldsSet = false;
 	
 	public TimelineFragment()
 	{
@@ -65,9 +66,12 @@ public class TimelineFragment extends InboxFragment
 			mInboxEntriesAdapter.insert(entry, 0);
             }
         });
+        
+		refreshEntries();
     }
 
-    void messageToNewContact(MessageCache messages,String sender,String number,boolean threadView)
+    // Now handled by NewContactTimeLineFragment.
+/*    void messageToNewContact(MessageCache messages,String sender,String number,boolean threadView)
     {
     	super.setMessageCache(messages, sender, threadView);
 
@@ -95,7 +99,7 @@ public class TimelineFragment extends InboxFragment
         		spinner.setSelection(index);
         	}
         }
-    }
+    }*/
     
     void setMessageCache(MessageCache messages,String Sender,boolean threadView)
     {
@@ -103,30 +107,71 @@ public class TimelineFragment extends InboxFragment
     	
     	if (Sender != null)
     	{
-	        TextView textViewSender = (TextView)getView().findViewById(R.id.textViewSender);
-	        textViewSender.setText(Sender);
-	        
-	        Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
-	        
-	        ArrayAdapter<String> array = messages.getContactNos(Sender);
-	        
-	        spinner.setAdapter(array);
-	        
-	        int count = array.getCount();
-	        
-			InboxEntry entry = getItem(0);
-			if (entry != null)
-			{
-				baseEntry = entry;
-			}
-	        
-	        for (int index=0;index<count;index++)
-	        {
-	        	if (PhoneNumberUtils.compare(array.getItem(index),baseEntry.senderRaw))
-	        	{
-	        		spinner.setSelection(index);
-	        	}
-	        }
-	    }
+    		// Check if the fragment is loaded and view is available before setting the UI so we don't crash!
+    		if (setFields())
+    		{
+    			refreshEntries();
+    		}
+    	}
+    }
+    
+    protected void refreshEntriesDone()
+    {
+		setFields();    	
+    }
+    
+    private boolean setFields()
+    {
+    	View view = getView();
+    	
+    	if (view == null)
+    	{
+    		fieldsSet = true;
+    		return false;
+    	}
+        TextView textViewSender = (TextView)view.findViewById(R.id.textViewSender);
+        
+        if (textViewSender == null) // The fragment is not rendered yet so leave this until it is loaded.
+        {
+        	fieldsSet = true;
+        	return false;
+        }
+        
+        textViewSender.setText(mSender);
+        
+        Spinner spinner = (Spinner) getView().findViewById(R.id.spinner1);
+        if (spinner == null)
+        {
+        	fieldsSet = true;
+        	return false;
+        }
+
+        if (mMessages == null) {fieldsSet=true; return false;}
+        ArrayAdapter<String> array = mMessages.getContactNos(mSender);
+        
+        spinner.setAdapter(array);
+        
+        int count = array.getCount();
+        
+		InboxEntry entry = getItem(0);
+		if (entry != null)
+		{
+			baseEntry = entry;
+		}
+		else
+		{
+			fieldsSet=true;
+			return true;
+		}
+        
+        for (int index=0;index<count;index++)
+        {
+        	if (PhoneNumberUtils.compare(array.getItem(index),baseEntry.senderRaw))
+        	{
+        		spinner.setSelection(index);
+        	}
+        }
+    	fieldsSet = false;
+    	return true;
     }
 }

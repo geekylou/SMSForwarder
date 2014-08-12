@@ -32,7 +32,7 @@ public class TCPIPInterfaceService extends InterfaceBaseService
         
 		if(mSocketThread != null)
 		{  		
-    		initListeners(this,intent);
+    		initListeners(this);
     		
     		// If the CONNECT value is either both available and set to true then connect to device identified by BT_ID.
             if (intent.getBooleanExtra("CONNECT", false))
