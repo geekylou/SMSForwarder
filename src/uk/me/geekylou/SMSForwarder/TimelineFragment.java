@@ -50,8 +50,9 @@ public class TimelineFragment extends InboxFragment
             
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x100);
         	
-        	Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-			mProtocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
+        	mMessages.sendMessage(mProtocolHandler,(String) spinner.getSelectedItem(),  message);
+			
+        	//mProtocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) spinner.getSelectedItem(),  message,new Date().getTime());
 	    	
 			InboxEntry entry     = new InboxEntry();
 			

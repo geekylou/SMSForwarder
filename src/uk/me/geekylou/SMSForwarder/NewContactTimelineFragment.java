@@ -53,8 +53,11 @@ public class NewContactTimelineFragment extends InboxFragment
 
         	ProtocolHandler mProtocolHandler = new ProtocolHandler(ctx,0x100);
         	
-        	Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
-			mProtocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) addressTextView.getText().toString(),  message,new Date().getTime());
+        	//Intent bluetoothService = new Intent(ctx,BluetoothInterfaceService.class);
+        	
+        	mMessages.sendMessage(mProtocolHandler,(String)  addressTextView.getText().toString(),  message);
+
+			//mProtocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, (String) addressTextView.getText().toString(),  message,new Date().getTime());
 	    	
 			InboxEntry entry     = new InboxEntry();
 			

@@ -425,21 +425,22 @@ abstract class InterfaceBaseService extends Service
 	                 
 	               for (int i = 0; i < pdusObj.length; i++) {
 	                     
-	            	   SmsMessage currentMessage = SmsMessage.createFromPdu((byte[]) pdusObj[i]);
-	            	   String phoneNumber = currentMessage.getDisplayOriginatingAddress();
+	            	   	SmsMessage currentMessage = SmsMessage.createFromPdu((byte[]) pdusObj[i]);
+	            	   	String phoneNumber = currentMessage.getDisplayOriginatingAddress();
 	                     
-	            	   String senderNum = phoneNumber;
-	            	   String message = currentMessage.getDisplayMessageBody();
+	            	   	String senderNum = phoneNumber;
+	            	   	String message = currentMessage.getDisplayMessageBody();
 	 
-	            	   Log.i("SmsReceiver", "senderNum: "+ senderNum + "; message: " + message);
+	            	   	Log.i("SmsReceiver", "senderNum: "+ senderNum + "; message: " + message);
 	                     
-	 
+	            	   	if (senderNum == null) senderNum = "unknown (no. null)";
+	            	   	if (message == null)   message   = "message=null";
+	            	   	
                    		// Show Alert
-	            	   int duration = Toast.LENGTH_LONG;
-	            	   Toast toast = Toast.makeText(InterfaceBaseService.this, 
-	            			   "senderNum: "+ senderNum + ", message: " + message, duration);
-	            	   toast.show();
-	                 
+	            	   	//int duration = Toast.LENGTH_LONG;
+	            	   	//Toast toast = Toast.makeText(InterfaceBaseService.this, 
+	            		//	   "senderNum: "+ senderNum + ", message: " + message, duration);
+	            	   	//toast.show();
 	            	   
        					try {
        						// No point in just looping back an intent to be handled by ourselves so create

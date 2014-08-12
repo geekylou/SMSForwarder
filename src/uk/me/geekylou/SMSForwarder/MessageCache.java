@@ -7,6 +7,7 @@ import java.util.HashMap;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -16,6 +17,7 @@ import android.widget.ArrayAdapter;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
+import android.telephony.SmsManager;
 import android.util.Log;
 
 public class MessageCache extends SQLiteOpenHelper 
@@ -269,6 +271,11 @@ public class MessageCache extends SQLiteOpenHelper
     	 * message.*/
 		return address;
 	}
+	
+	public void sendMessage(ProtocolHandler protocolHandler, String address, String message)
+	{
+		protocolHandler.sendSMSMessage(ctx,new Intent(),0x100,ProtocolHandler.SMS_MESSAGE_TYPE_SEND,0, address, message,new Date().getTime());
+	}
 }
 
 class LocalMessages extends MessageCache
@@ -289,18 +296,23 @@ class LocalMessages extends MessageCache
 		String args[] = new String[]{sender};
 		Bitmap defaultBitmap = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.ic_launcher);
 		
-		if (sender == null)
-		{
-			c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);					
-		}
-		else
-		{
-			threadView = false; /* Thread view makes no sense for a single contact.*/
-			c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, "address=?", args, null);
-		}
+		c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, null);					
 			
-		c = ctx.getContentResolver().query(Uri.parse("content://sms/inbox"), null, "address=?", args, null);
+		populateAdapter(mHashmap, c, sender, mTimelineArrayAdapter, threadView, bitmap, defaultBitmap,false);
 
+		c = ctx.getContentResolver().query(Uri.parse("content://sms/sent"), null, null, null, null);					
+		
+		populateAdapter(mHashmap, c, sender, mTimelineArrayAdapter, threadView, bitmap, defaultBitmap,true);
+
+		mTimelineArrayAdapter.sort(new InboxEntry());
+		
+		db.close();
+
+		return mTimelineArrayAdapter;
+	}
+	
+	private Bitmap populateAdapter(HashMap<String,InboxEntry> mHashmap,Cursor c,String sender,ArrayAdapter<InboxEntry> mTimelineArrayAdapter,boolean threadView,Bitmap bitmap, Bitmap defaultBitmap, boolean sent)
+	{
 		while (c.moveToNext())
 		{
 			boolean addEntry = true;
@@ -309,6 +321,11 @@ class LocalMessages extends MessageCache
 			entry.type = c.getInt(c.getColumnIndex("type"));
 			entry.date = new Date(c.getLong(c.getColumnIndex("date")));
 
+			if (sent)
+				entry.type  = ProtocolHandler.SMS_MESSAGE_TYPE_RESPONSE_SENT;
+			else
+				entry.type  = ProtocolHandler.SMS_MESSAGE_TYPE_RESPONSE;
+				
 			entry.senderRaw = c.getString(c.getColumnIndex("address"));
 			entry.message   = c.getString(c.getColumnIndex("body"));
 
@@ -326,52 +343,62 @@ class LocalMessages extends MessageCache
 				entry.sender = getContactName(entry.senderRaw);
 
 				Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(entry.senderRaw));
-	
-	        	// query contact.
-	        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
-	
-	        	if (cursor.moveToFirst()) 
-	        	{
-	            	do{	
-		        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
-	
-		        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
-		        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
-		        		
-		        		if (threadView || bitmap == null)
-		        			entry.bitmap = bitmap = BitmapFactory.decodeStream(bitmapStream);
-		        		else
-		        			entry.bitmap = bitmap;
-		        		
-					}while(cursor.moveToNext() && entry.bitmap == null);
-	        	}
-	    		cursor.close();
-			}
-    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
-        	 * message.*/
-    		
-        	if (entry.bitmap == null)
-        		entry.bitmap = defaultBitmap;
 
-			if (threadView)
-    		{
-    			if (!mHashmap.containsKey(entry.senderRaw))
-    			{
-    				mHashmap.put(entry.senderRaw, entry);
-    				mTimelineArrayAdapter.add(entry);
-    			}
-    		}
-    		else
-    		{
-    			if (!mHashmap.containsKey(entry.senderRaw))
-    			{
-    				mHashmap.put(entry.senderRaw, entry);
-    			}
-    			mTimelineArrayAdapter.add(entry);
-    		}
-		}
-		db.close();
+				if (sender == null || entry.sender.equals(sender))
+				{	
+		        	// query contact.
+		        	Cursor cursor = ctx.getContentResolver().query(uri, mProjections, null, null, null);
 		
-		return mTimelineArrayAdapter;
+		        	if (cursor.moveToFirst()) 
+		        	{
+		            	do{	
+			        	    String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.PhoneLookup._ID));
+		
+			        	    Uri photoUri = ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, Long.parseLong(contactId));
+			        		InputStream bitmapStream = ContactsContract.Contacts.openContactPhotoInputStream(ctx.getContentResolver(), photoUri);
+			        		
+			        		if (threadView || bitmap == null)
+			        			entry.bitmap = bitmap = BitmapFactory.decodeStream(bitmapStream);
+			        		else
+			        			entry.bitmap = bitmap;
+			        		
+						}while(cursor.moveToNext() && entry.bitmap == null);
+		        	}
+		    		cursor.close();
+				}
+			}
+			
+			if (sender == null || entry.sender.equals(sender))
+			{
+	    		/* if we are in thread view check if the item already exists. if it does update the entry if there is a more recent
+	        	 * message.*/
+	    		
+	        	if (entry.bitmap == null)
+	        		entry.bitmap = defaultBitmap;
+	
+				if (threadView)
+	    		{
+	    			if (!mHashmap.containsKey(entry.senderRaw))
+	    			{
+	    				mHashmap.put(entry.senderRaw, entry);
+	        			mTimelineArrayAdapter.add(entry);    				
+	    			}
+	    		}
+	    		else
+	    		{
+	    			if (!mHashmap.containsKey(entry.senderRaw))
+	    			{
+	    				mHashmap.put(entry.senderRaw, entry);
+	    			}
+					mTimelineArrayAdapter.add(entry);
+	    		}
+			}
+		}
+		return bitmap;
+	}
+	
+	public void sendMessage(ProtocolHandler protocolHandler, String address, String message)
+	{
+		SmsManager.getDefault().sendTextMessage(address, null, message, null, null);
 	}
 }

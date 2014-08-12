@@ -12,6 +12,7 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -44,6 +45,7 @@ public class MainScreenActivity extends ActionBarActivity {
 	private TimelineFragment timeLineFragment = null;
 
 	String  sender;
+	private SharedPreferences mPrefs;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +67,15 @@ public class MainScreenActivity extends ActionBarActivity {
 		
 //            getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, timeLineFragment).commit();
 //        }
-		mMessages        = new MessageCache(this);
+		mPrefs = getSharedPreferences("BluetoothPreferences", MODE_PRIVATE);
+		if (mPrefs.getBoolean("LOCAL_INBOX", false))
+		{
+			mMessages = new LocalMessages(this);
+		}
+		else
+		{
+			mMessages = new MessageCache(this);
+		}
 		mProtocolHandler = new MainScreenProtocolHandler(this,0x104);
 				
 		/* Start listening for replies before doing anything else.*/
@@ -76,6 +86,20 @@ public class MainScreenActivity extends ActionBarActivity {
 		mProtocolHandler.sendInboxRequest(true);
 	}
 
+	private void updateInbox(boolean localInbox)
+	{
+		if (localInbox)
+		{
+			mMessages = new LocalMessages(this);
+		}
+		else
+		{
+			mMessages = new MessageCache(this);
+		}
+		listFragment.setMessageCache(mMessages,null,true);
+		listFragment.refreshEntries();
+	}
+	
 	protected void onDestroy()
 	{
 		super.onDestroy();
@@ -209,7 +233,7 @@ public class MainScreenActivity extends ActionBarActivity {
 	        return false;
 		}
 
-		void updateFinished()
+	    void updateFinished()
 		{
 			if(detailFragment != null) detailFragment.refreshEntries();
 			listFragment.refreshEntries();
@@ -229,6 +253,18 @@ public class MainScreenActivity extends ActionBarActivity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 	    // Handle presses on the action bar items
 	    switch (item.getItemId()) {
+	    	case R.id.itemLocalInbox:
+	    		if (item.isChecked()) item.setChecked(false);
+	            else item.setChecked(true);
+
+	    		SharedPreferences.Editor mPreferencesEditor = mPrefs.edit();
+
+    		    mPreferencesEditor.putBoolean("LOCAL_INBOX"  , item.isChecked());
+        		mPreferencesEditor.commit();
+
+        		updateInbox(item.isChecked());
+
+	            return true;
 	    	case R.id.add_contact:
 	    		FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
