@@ -52,19 +52,19 @@ public class MainScreenActivity extends ActionBarActivity {
 
 		// Check that the activity is using the layout version with
         // the fragment_container FrameLayout
-        if (findViewById(R.id.detailFragment) != null) 
-        {
+//        if (findViewById(R.id.detailFragment) != null) 
+//        {
             // However, if we're being restored from a previous state,
             // then we don't need to do anything and should return or else
             // we could end up with overlapping fragments.
-            if (savedInstanceState != null) {
-                return;
-            }
+//            if (savedInstanceState != null) {
+//                return;
+//            }
             
-            if (timeLineFragment==null) timeLineFragment = new TimelineFragment();
+//            if (timeLineFragment==null) timeLineFragment = new TimelineFragment();
 		
-            getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, timeLineFragment).commit();
-        }
+//            getSupportFragmentManager().beginTransaction().add(R.id.detailFragment, timeLineFragment).commit();
+//        }
 		mMessages        = new MessageCache(this);
 		mProtocolHandler = new MainScreenProtocolHandler(this,0x104);
 				
@@ -95,13 +95,13 @@ public class MainScreenActivity extends ActionBarActivity {
 		
 		listFragment = (InboxFragment) (getSupportFragmentManager().findFragmentById(R.id.listFragment));
 		listFragment.setMessageCache(mMessages,null,true);
-
+		listFragment.refreshEntries();
 		
-		InboxEntry item = listFragment.getItem(0);
-		if (item != null && sender == null)
-		{
-			sender = listFragment.getItem(0).sender;
-		}
+//		InboxEntry item = listFragment.getItem(0);
+//		if (item != null && sender == null)
+//		{
+//			sender = listFragment.getItem(0).sender;
+//		}
 		
 		//detailFragment = (InboxFragment) (getSupportFragmentManager().findFragmentById(R.id.detailFragment));	
 		//detailFragment.setMessageCache(mMessages,sender,false);
@@ -113,6 +113,8 @@ public class MainScreenActivity extends ActionBarActivity {
 	      		
 	      		FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
+	      		if (timeLineFragment==null) timeLineFragment = new TimelineFragment();
+	      		
 	    		// Replace whatever is in the fragment_container view with this fragment,
 	    		transaction.replace(R.id.detailFragment, timeLineFragment);
 	    		transaction.commit();
