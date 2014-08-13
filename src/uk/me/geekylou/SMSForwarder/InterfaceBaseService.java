@@ -152,8 +152,6 @@ abstract class InterfaceBaseService extends Service
         	public void run()
         	{
         		running = THREAD_RUNNING;
-        		mOutputThread = new OutputThread();
-    			mOutputThread.start();
 
         		if (server)
         		{    			
@@ -335,7 +333,10 @@ abstract class InterfaceBaseService extends Service
     	void stopRunningDeffered()
     	{
     		if (mOutputThread != null)
+    		{
     			mOutputThread.status = THREAD_STOP_DEFERRED;
+    			return;
+    		}
     	}
     	
     	void cancelStopRunningDeffered()
@@ -374,6 +375,8 @@ abstract class InterfaceBaseService extends Service
     	{
 			mInputThread = new InputThread();
 			mInputThread.start();
+    		mOutputThread = new OutputThread();
+			mOutputThread.start();
 	}
     	
     	boolean sendPacket(byte[] packetData,boolean buffer)
